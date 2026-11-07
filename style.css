@@ -1,0 +1,61 @@
+:root{--bg:#f7f9f8;--fg:#18211d;--muted:#4b5d55;--card:#fff;--line:#d9e4de;--accent:#1c6b52;--accent-soft:#e3f0ea;--code:#eef3f0;--warn-bg:#fff6e0;--warn-line:#e0b84f;--warn-fg:#5c4300;--page:#fff;--ink:#2f4a3f;--rule:#c3d3cb}
+@media (prefers-color-scheme:dark){:root{--bg:#111815;--fg:#e6eeea;--muted:#a3b8ae;--card:#18221e;--line:#2a3a33;--accent:#6fd0ab;--accent-soft:#183129;--code:#1a2520;--warn-bg:#2d2511;--warn-line:#8a6d1f;--warn-fg:#f3dc9c;--page:#1f362d;--ink:#cfe0d8;--rule:#4f7365}}
+*{box-sizing:border-box}
+html{text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:48rem;margin:0 auto;padding:2.5rem 1rem 4rem}
+h1{font-size:2.3rem;line-height:1.15;margin:0 0 .4rem;letter-spacing:-.02em;overflow-wrap:anywhere}
+h2{font-size:1.25rem;margin:2.6rem 0 .75rem}
+h3{font-size:1.05rem;margin:1.6rem 0 .4rem}
+p.lead{font-size:1.15rem;color:var(--muted);margin:0 0 1.5rem}
+a{color:var(--accent);text-underline-offset:.15em}
+a:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:.2rem}
+.skip{position:absolute;left:-999px;top:0}
+.skip:focus{left:1rem;top:1rem;background:var(--card);padding:.4rem .8rem;border:1px solid var(--line);border-radius:.4rem;z-index:1}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 2.5rem;font-size:.95rem}
+header.top a{text-decoration:none}
+header.top .brand{display:inline-flex;align-items:center;gap:.5rem;font-weight:600;color:var(--fg)}
+header.top span{display:flex;gap:1rem;align-items:center}
+header.top .gh{color:var(--fg);display:inline-flex}
+.eyebrow{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 .4rem}
+.status{background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn-fg);border-radius:.6rem;padding:.9rem 1.1rem;margin:1.5rem 0}
+.status p{margin:.3rem 0}
+.status a{color:inherit;font-weight:600}
+.links{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.5rem 0}
+.links a{border:1px solid var(--line);background:var(--card);padding:.45rem .9rem;border-radius:.5rem;text-decoration:none}
+.links a:hover{border-color:var(--accent)}
+ul,ol{padding-left:1.3rem}
+li{margin:.2rem 0}
+pre{background:var(--code);border:1px solid var(--line);border-radius:.5rem;padding:.9rem 1rem;overflow-x:auto;font-size:.85rem;line-height:1.5}
+code{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.92em}
+p code,li code,td code,dd code{background:var(--code);padding:.05rem .3rem;border-radius:.25rem;overflow-wrap:anywhere}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+td,th{border-bottom:1px solid var(--line);padding:.5rem .4rem;text-align:left;vertical-align:top}
+thead th{border-bottom:2px solid var(--line)}
+.tag{display:inline-block;font-size:.8rem;font-weight:600;padding:.05rem .5rem;border-radius:1rem;white-space:nowrap;border:1px solid var(--line)}
+.tag.done{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tag.wip{background:var(--warn-bg);color:var(--warn-fg);border-color:var(--warn-line)}
+.tag.later{color:var(--muted)}
+figure{margin:1.5rem 0}
+figcaption{color:var(--muted);font-size:.9rem;margin-top:.5rem}
+.diagram{width:100%;height:auto;display:block}
+.diagram.tall{display:none;max-width:20rem;margin:0 auto}
+@media (max-width:40rem){.diagram.wide{display:none}.diagram.tall{display:block}}
+.diagram .box{fill:var(--card);stroke:var(--line);stroke-width:2}
+.diagram .box.engine{fill:var(--accent-soft);stroke:var(--accent)}
+.diagram .lbl{fill:var(--fg);font:600 15px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.diagram .sub{fill:var(--muted);font:13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.diagram .arrow{stroke:var(--accent);stroke-width:2.5;fill:none}
+.diagram .head{fill:var(--accent)}
+.diagram .page{fill:var(--page);stroke:var(--ink);stroke-width:2}
+.diagram .ink{fill:var(--rule)}
+.diagram .ok{fill:var(--accent)}
+.diagram .okmark{stroke:var(--bg);stroke-width:3;fill:none;stroke-linecap:round;stroke-linejoin:round}
+nav.toc{margin:0 0 2rem;font-size:.95rem;display:flex;flex-wrap:wrap;gap:.3rem 1rem}
+dl{margin:0}
+dt{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-weight:600;margin-top:.7rem;overflow-wrap:anywhere}
+dd{margin:0 0 0 1.2rem}
+footer{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--line);color:var(--muted);font-size:.9rem}
+@media (max-width:30rem){body{font-size:16px}h1{font-size:1.8rem}main{padding-top:1.5rem}}
+.jobs td:first-child code{white-space:nowrap;overflow-wrap:normal}

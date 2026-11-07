@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>einvoice-validator: official EN 16931 and Peppol rules, in pure Rust</title>
+<meta name="description" content="An XSLT 2.0 and XPath 2.0 engine in pure Rust, built to run the official EN 16931 and Peppol BIS Billing 3.0 validation artefacts unchanged, with exact decimals. Pre-alpha.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<main id="content">
+<header class="top"><a href="./" class="brand"><img src="favicon.svg" alt="" width="28" height="28">einvoice-validator</a><span><a href="docs.html">Docs</a> <a href="https://github.com/einvoice-validator" class="gh" aria-label="einvoice-validator on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></span></header>
+
+<p class="eyebrow">EN 16931 · Peppol BIS Billing 3.0</p>
+<h1>einvoice-validator</h1>
+<p class="lead">Validation of European e-invoices against the <strong>official</strong> published validation artefacts, in pure Rust: no JVM, no C library, no FFI. Built to run the official stylesheets unchanged, with exact decimal arithmetic, and to give the same report as Saxon-HE, rule by rule.</p>
+
+<aside class="status" aria-label="Project status">
+<p><strong>Pre-alpha: not usable yet.</strong> It does not validate invoices yet, and nothing is published on crates.io.</p>
+<p>Done: the XPath 2.0 parser, the XSLT loader, the XPath 2.0 atomic values with exact decimals, and the CEN UBL 1.3.17 test corpus with its Saxon-HE results. In progress: the XPath evaluator, the XSLT executor, UBL schema validation. Follow the <a href="https://github.com/einvoice-validator/einvoice-validator/issues">tracking issues</a>.</p>
+</aside>
+
+<div class="links">
+<a href="https://github.com/einvoice-validator/einvoice-validator">Repository</a>
+<a href="https://github.com/einvoice-validator/einvoice-validator/issues">Issues and roadmap</a>
+<a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/CHANGELOG.md">Changelog</a>
+<a href="https://github.com/einvoice-validator/einvoice-validator/security">Security</a>
+<a href="docs.html">Build and test</a>
+</div>
+
+<h2 id="what">What it is</h2>
+<p>The business rules of EN 16931 and of Peppol BIS Billing 3.0 are published by CEN and OpenPeppol as Schematron, which validators run compiled to XSLT 2.0 stylesheets. einvoice-validator is an XSLT 2.0 and XPath 2.0 engine, written in Rust, built to run those stylesheets as they are published.</p>
+<ul>
+<li><strong>The official artefacts are the rules.</strong> No rule is translated into Rust by hand. The CEN artefacts are vendored byte for byte, with their checksums.</li>
+<li><strong>A closed subset.</strong> The engine implements the XSLT and XPath the official stylesheets use, nothing more. Anything else is refused when the stylesheet is loaded, never skipped.</li>
+<li><strong>Exact numbers.</strong> <code>xs:decimal</code> and <code>xs:integer</code> are arbitrary precision, as the amount and total rules require; no floating-point stand-in.</li>
+<li><strong>The reference engine decides.</strong> The goal is the report Saxon-HE produces for the same document: same fired rules, same failed asserts and successful reports, with the same id, flag and location, in the same order (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>).</li>
+<li><strong>Pure Rust.</strong> No Java runtime, no C library, no FFI. A library and command-line tool (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>) and a WebAssembly build (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>) are planned.</li>
+</ul>
+
+<h2 id="why">Why run the official stylesheets</h2>
+<p>The validation artefacts are the reference definition of the rules. Running them unchanged means a new release of the rules is new data to vendor and test, not code to rewrite, and a result can always be traced back to the published rule that produced it.</p>
+
+<h2 id="how">How it works</h2>
+<figure>
+<svg class="diagram wide" viewBox="-2 -2 764 168" role="img" aria-labelledby="dw-t dw-d">
+<title id="dw-t">Validation pipeline</title>
+<desc id="dw-d">An invoice in UBL XML is checked against the UBL 2.1 XML Schema, then the official XSLT rule set is executed by the Rust engine, which writes an SVRL report.</desc>
+<rect class="box" x="0" y="0" width="160" height="160" rx="12"/>
+<rect class="box" x="200" y="0" width="160" height="160" rx="12"/>
+<rect class="box engine" x="400" y="0" width="160" height="160" rx="12"/>
+<rect class="box" x="600" y="0" width="160" height="160" rx="12"/>
+<g><path class="page" d="M62 20h26l10 10v44h-36z"/><rect class="ink" x="68" y="38" width="16" height="4" rx="2"/><rect class="ink" x="68" y="48" width="24" height="4" rx="2"/><rect class="ink" x="68" y="58" width="20" height="4" rx="2"/></g>
+<text class="lbl" x="80" y="104" text-anchor="middle">Invoice</text>
+<text class="sub" x="80" y="126" text-anchor="middle">UBL 2.1 Invoice</text>
+<text class="sub" x="80" y="144" text-anchor="middle">or CreditNote, XML</text>
+<text class="lbl" x="280" y="60" text-anchor="middle" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px">&lt;xsd&gt;</text>
+<text class="lbl" x="280" y="104" text-anchor="middle">Schema check</text>
+<text class="sub" x="280" y="126" text-anchor="middle">UBL 2.1 XML Schema,</text>
+<text class="sub" x="280" y="144" text-anchor="middle">in Rust</text>
+<text class="lbl" x="480" y="60" text-anchor="middle" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px">&lt;xsl&gt;</text>
+<text class="lbl" x="480" y="104" text-anchor="middle">Official XSLT</text>
+<text class="sub" x="480" y="126" text-anchor="middle">executed unchanged</text>
+<text class="sub" x="480" y="144" text-anchor="middle">by the Rust engine</text>
+<g><path class="page" d="M658 20h26l10 10v44h-36z"/><rect class="ink" x="664" y="38" width="16" height="4" rx="2"/><rect class="ink" x="664" y="48" width="24" height="4" rx="2"/><circle class="ok" cx="694" cy="68" r="13"/><path class="okmark" d="M688 68l4.5 4.5 8-8.5"/></g>
+<text class="lbl" x="680" y="104" text-anchor="middle">SVRL report</text>
+<text class="sub" x="680" y="126" text-anchor="middle">fired rules, failed</text>
+<text class="sub" x="680" y="144" text-anchor="middle">asserts, reports</text>
+<path class="arrow" d="M166 80h20"/><path class="head" d="M194 80l-10-6v12z"/>
+<path class="arrow" d="M366 80h20"/><path class="head" d="M394 80l-10-6v12z"/>
+<path class="arrow" d="M566 80h20"/><path class="head" d="M594 80l-10-6v12z"/>
+</svg>
+<svg class="diagram tall" viewBox="-2 -2 304 586" role="img" aria-labelledby="dt-t dt-d">
+<title id="dt-t">Validation pipeline</title>
+<desc id="dt-d">An invoice in UBL XML is checked against the UBL 2.1 XML Schema, then the official XSLT rule set is executed by the Rust engine, which writes an SVRL report.</desc>
+<rect class="box" x="0" y="0" width="300" height="118" rx="12"/>
+<rect class="box" x="0" y="154" width="300" height="118" rx="12"/>
+<rect class="box engine" x="0" y="308" width="300" height="118" rx="12"/>
+<rect class="box" x="0" y="462" width="300" height="118" rx="12"/>
+<g><path class="page" d="M22 36h26l10 10v44h-36z"/><rect class="ink" x="28" y="54" width="16" height="4" rx="2"/><rect class="ink" x="28" y="64" width="24" height="4" rx="2"/><rect class="ink" x="28" y="74" width="20" height="4" rx="2"/></g>
+<text class="lbl" x="84" y="46">Invoice</text>
+<text class="sub" x="84" y="70">UBL 2.1 Invoice</text>
+<text class="sub" x="84" y="88">or CreditNote, XML</text>
+<text class="lbl" x="40" y="222" text-anchor="middle" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:18px">&lt;xsd&gt;</text>
+<text class="lbl" x="84" y="200">Schema check</text>
+<text class="sub" x="84" y="224">UBL 2.1 XML Schema,</text>
+<text class="sub" x="84" y="242">in Rust</text>
+<text class="lbl" x="40" y="376" text-anchor="middle" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:18px">&lt;xsl&gt;</text>
+<text class="lbl" x="84" y="354">Official XSLT</text>
+<text class="sub" x="84" y="378">executed unchanged</text>
+<text class="sub" x="84" y="396">by the Rust engine</text>
+<g><path class="page" d="M22 498h26l10 10v44h-36z"/><rect class="ink" x="28" y="516" width="16" height="4" rx="2"/><rect class="ink" x="28" y="526" width="24" height="4" rx="2"/><circle class="ok" cx="58" cy="546" r="13"/><path class="okmark" d="M52 546l4.5 4.5 8-8.5"/></g>
+<text class="lbl" x="84" y="508">SVRL report</text>
+<text class="sub" x="84" y="532">fired rules, failed</text>
+<text class="sub" x="84" y="550">asserts, reports</text>
+<path class="arrow" d="M150 122v20"/><path class="head" d="M150 150l-6-10h12z"/>
+<path class="arrow" d="M150 276v20"/><path class="head" d="M150 304l-6-10h12z"/>
+<path class="arrow" d="M150 430v20"/><path class="head" d="M150 458l-6-10h12z"/>
+</svg>
+<figcaption>The pipeline being built. SVRL (Schematron Validation Report Language) is the report format the official stylesheets write.</figcaption>
+</figure>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Stage</th><th scope="col">What</th><th scope="col">Status</th></tr></thead>
+<tbody>
+<tr><td>Schema check</td><td>UBL 2.1 XML Schema validation in Rust, limited to the XSD features the UBL schemas use (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/6">#6</a>)</td><td><span class="tag wip">in progress</span></td></tr>
+<tr><td>Load</td><td>The stylesheet is parsed, its XPath expressions and patterns with it; constructs outside the subset are refused (<code>einvoice-xslt</code>, <code>einvoice-xpath</code>)</td><td><span class="tag done">done</span></td></tr>
+<tr><td>Values</td><td>XPath 2.0 atomic values: exact decimals, big integers, doubles, dates, casts, comparisons, regular expressions, as Saxon-HE 9.9 behaves (<code>einvoice-xdm</code>)</td><td><span class="tag done">done</span></td></tr>
+<tr><td>Evaluate</td><td>XPath 2.0 evaluator over the invoice (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/1">#1</a>)</td><td><span class="tag wip">in progress</span></td></tr>
+<tr><td>Execute and report</td><td>XSLT executor: template rules, modes, priorities, functions; SVRL output (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/2">#2</a>)</td><td><span class="tag later">to do</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="rule-sets">Rule sets</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th scope="col">Rule set</th><th scope="col">Release</th><th scope="col">Artefacts</th><th scope="col">Status</th></tr></thead>
+<tbody>
+<tr><td>CEN EN 16931, UBL syntax</td><td>1.3.17</td><td>Compiled XSLT published by CEN, vendored unmodified</td><td><span class="tag done">corpus</span> 1179 cases with Saxon-HE results<br><span class="tag later">validation</span> to do (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>)</td></tr>
+<tr><td>Peppol BIS Billing 3.0</td><td>3.0.22</td><td>Schematron sources, fetched at test time from a pinned release</td><td><span class="tag later">to do</span> corpus (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/4">#4</a>), validation (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>)</td></tr>
+<tr><td>UBL 2.1 XML Schema</td><td>2.1</td><td>OASIS UBL 2.1 schemas</td><td><span class="tag wip">in progress</span> (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/6">#6</a>)</td></tr>
+<tr><td>CEN EN 16931 CII, XRechnung, Factur-X / ZUGFeRD</td><td></td><td></td><td><span class="tag later">later</span> (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/12">#12</a>)</td></tr>
+</tbody>
+</table>
+</div>
+<p>Need another official rule set? <a href="https://github.com/einvoice-validator/einvoice-validator/issues">Open an issue</a>.</p>
+
+<h2 id="quality">Quality</h2>
+<ul>
+<li><strong>Reference results.</strong> 1179 cases from the official CEN UBL 1.3.17 examples, test files and unit tests, each with the SVRL report Saxon-HE 9.9.1-8 produces. CI runs Saxon again and the results must not change; they are cross-checked against the expectations of the official unit tests, with no disagreement. The atomic-value operations already match Saxon-HE on over 5000 test cases.</li>
+<li><strong>Integrity.</strong> Vendored artefacts are checked against their SHA-256 sums; Saxon-HE, used only in tests, is downloaded from Maven Central and its checksum verified.</li>
+<li><strong>Lints.</strong> Every warning is an error; clippy <code>all</code> and <code>pedantic</code> are denied; <code>unwrap</code>, <code>expect</code> and <code>panic</code> are denied outside tests; <code>unsafe</code> code is forbidden.</li>
+<li><strong>Tests.</strong> Unit, golden and property-based tests (proptest); on Linux for every push to <code>main</code>, also on macOS and Windows for pull requests.</li>
+<li><strong>Supply chain.</strong> Toolchain pinned (Rust 1.99.1), <code>Cargo.lock</code> committed and every cargo command <code>--locked</code>; licences, advisories and sources checked by <code>cargo-deny</code>; GitHub Actions pinned by commit SHA, linted by actionlint and audited by zizmor; signed commits.</li>
+<li><strong>Same checks everywhere.</strong> CI and a local run use the same script: see <a href="docs.html">Build and test</a>.</li>
+</ul>
+
+<h2 id="licences">Licences</h2>
+<ul>
+<li>The code: <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/LICENSE">MIT</a>.</li>
+<li>The vendored CEN artefacts (<code>artefacts/cen-en16931-ubl-1.3.17/</code>) and the test corpus derived from them (<code>corpus/cen-en16931-ubl-1.3.17/</code>) keep their upstream licence, the European Union Public Licence 1.2 (EUPL-1.2).</li>
+<li>Saxon-HE (MPL-2.0) is not part of the repository: the tests download it.</li>
+</ul>
+
+<footer><a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/LICENSE">MIT licensed</a> · <a href="https://github.com/einvoice-validator/einvoice-validator">Source</a> · <a href="https://github.com/einvoice-validator/einvoice-validator/issues">Issues</a> · <a href="https://github.com/einvoice-validator">GitHub</a></footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,48 @@
+name: privacy
+
+# This repository is public. The private term list is the PRIVATE_TERMS
+# organization secret (never in the tree); see scripts/privacy-guard.sh,
+# a copy of the one in einvoice-validator/einvoice-validator.
+# Pull requests from forks get no secrets, so the history scan only runs
+# where the secret exists: pushes, and pull requests from branches of this
+# repository.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same ref supersedes the running scan: it scans the
+# whole history again, which contains everything the older run would have.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  privacy-guard:
+    name: privacy guard (whole history)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan the whole history
+        env:
+          PRIVATE_TERMS: ${{ secrets.PRIVATE_TERMS }}
+        run: scripts/privacy-guard.sh history
+
+  shellcheck:
+    name: shellcheck (guard and hooks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ShellCheck
+        run: shellcheck --version && shellcheck scripts/privacy-guard.sh .githooks/*

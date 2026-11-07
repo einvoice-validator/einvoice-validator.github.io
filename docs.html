@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build and test · einvoice-validator</title>
+<meta name="description" content="Building einvoice-validator from source, running its checks and tests, and its Saxon-HE reference oracle.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<a class="skip" href="#content">Skip to content</a>
+<main id="content">
+<header class="top"><a href="./" class="brand"><img src="favicon.svg" alt="" width="28" height="28">einvoice-validator</a><span><a href="docs.html" aria-current="page">Docs</a> <a href="https://github.com/einvoice-validator" class="gh" aria-label="einvoice-validator on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></span></header>
+<nav class="toc" aria-label="On this page"><a href="./">← Home</a> <a href="#requirements">Requirements</a> <a href="#build">Build</a> <a href="#checks">Checks</a> <a href="#tests">Tests</a> <a href="#oracle">Corpus and oracle</a> <a href="#layout">Layout</a></nav>
+<h1>Build and test</h1>
+<p class="lead">For contributors. There is nothing to install yet: einvoice-validator is pre-alpha, does not validate invoices, and no crate is published.</p>
+
+<h2 id="requirements">Requirements</h2>
+<ul>
+<li><a href="https://rustup.rs/">rustup</a>, Git and Bash. The toolchain is pinned in <code>rust-toolchain.toml</code> (Rust 1.99.1 with rustfmt and clippy); <code>scripts/check.sh</code> installs it when it is missing.</li>
+<li>Optional: <a href="https://github.com/EmbarkStudios/cargo-deny">cargo-deny</a>, <a href="https://github.com/rhysd/actionlint">actionlint</a> and <a href="https://github.com/zizmorcore/zizmor">zizmor</a>. Without one of them its check prints <code>SKIPPED</code>; CI installs all three at pinned versions.</li>
+<li>For the reference oracle only: Java (CI uses Temurin 21) and network access the first time, to download Saxon-HE.</li>
+</ul>
+
+<h2 id="build">Build from source</h2>
+<pre><code>git clone https://github.com/einvoice-validator/einvoice-validator.git
+cd einvoice-validator
+# install the pinned toolchain if needed
+scripts/check.sh toolchain
+cargo build --workspace --locked</code></pre>
+<p><code>Cargo.lock</code> is committed; every cargo command in the checks uses <code>--locked</code>.</p>
+
+<h2 id="checks">Checks</h2>
+<p>CI and a local run execute the same script, with the same flags. Every warning is an error.</p>
+<pre><code># every job
+scripts/check.sh
+# selected jobs
+scripts/check.sh clippy test
+# only install the pinned toolchain
+scripts/check.sh toolchain</code></pre>
+<div class="table-wrap">
+<table class="jobs">
+<thead><tr><th scope="col">Job</th><th scope="col">What it runs</th></tr></thead>
+<tbody>
+<tr><td><code>fmt</code></td><td><code>cargo fmt --all --check</code></td></tr>
+<tr><td><code>clippy</code></td><td><code>cargo clippy --workspace --all-targets --all-features --locked -- -D warnings</code></td></tr>
+<tr><td><code>doc</code></td><td><code>cargo doc --workspace --no-deps --all-features --locked</code></td></tr>
+<tr><td><code>test</code></td><td>Unit and integration tests, then the doctests</td></tr>
+<tr><td><code>deny</code></td><td><code>cargo deny --all-features check</code>: licences, advisories, bans, sources</td></tr>
+<tr><td><code>actionlint</code></td><td>Lints the GitHub Actions workflows</td></tr>
+<tr><td><code>zizmor</code></td><td>Security audit of the workflows, pedantic persona</td></tr>
+<tr><td><code>oracle</code></td><td>The test corpus and the Saxon-HE reference oracle (<a href="#oracle">below</a>)</td></tr>
+<tr><td><code>privacy</code></td><td>The repository's content guard on staged changes; does nothing when nothing is staged</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2 id="tests">Tests</h2>
+<pre><code># everything
+cargo test --workspace --all-features --locked
+# one crate
+cargo test -p einvoice-xdm --locked
+# the tests of a crate whose path contains a name
+cargo test -p einvoice-xdm --locked every_case
+# corpus checks, no Java needed
+cargo test -p xtask --locked</code></pre>
+<p>Besides unit tests: golden tests against results produced by Saxon-HE, and property-based tests with proptest.</p>
+
+<h2 id="oracle">Test corpus and reference oracle</h2>
+<p><code>artefacts/</code> holds unmodified copies of the official validation artefacts, <code>corpus/</code> the test cases derived from them and, for each case, the SVRL report Saxon-HE 9.9.1-8 produces. The format is described in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/README.md">corpus/README.md</a>.</p>
+<pre><code># vendored files match artefacts/*/SHA256SUMS
+cargo xtask manifest
+# the corpus re-derived from artefacts/ matches the committed one
+cargo xtask corpus
+# Saxon results vs the expectations of the official unit tests
+cargo xtask crosscheck
+# Saxon-HE from Maven Central, checksum verified, into target/oracle/saxon/
+scripts/fetch-saxon.sh
+# Saxon-HE on all 1179 cases: results must equal the committed ones
+cargo xtask oracle
+# all of the above, then the atomic-value oracle of einvoice-xdm
+scripts/check.sh oracle</code></pre>
+<p><code>--write</code> regenerates instead of checking (<code>manifest</code>, <code>corpus</code>, <code>oracle</code>). <code>cargo xtask oracle</code> also takes <code>--java JAVA</code> and <code>--saxon JAR</code>; <code>scripts/check.sh oracle</code> reads them from the <code>JAVA</code> and <code>SAXON_JAR</code> environment variables. Without Java, <code>scripts/check.sh oracle</code> runs the manifest, corpus and cross-check and skips the Saxon run (in CI it fails instead). <code>cargo test</code> covers the manifest, extraction and cross-check without Java.</p>
+
+<h2 id="layout">Repository layout</h2>
+<dl>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xpath">crates/einvoice-xpath</a></dt><dd>Parser and syntax tree for the XPath 2.0 subset of the official stylesheets.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xdm">crates/einvoice-xdm</a></dt><dd>Atomic values of the XPath 2.0 data model: exact <code>xs:decimal</code>, <code>xs:integer</code>, <code>xs:double</code>, dates, casts, comparisons, regular expressions, with the behaviour of Saxon-HE 9.9.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xslt">crates/einvoice-xslt</a></dt><dd>Loader for the XSLT 2.0 subset: templates, modes, priorities, functions, variables and instructions; anything outside the subset is a load error.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-validator">crates/einvoice-validator</a></dt><dd>The library crate; no validation code yet.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/xtask">xtask</a></dt><dd>Repository tooling behind <code>cargo xtask</code>: manifest, corpus, oracle, cross-check.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/artefacts">artefacts</a></dt><dd>Official validation artefacts, unmodified, with their licence and <code>SHA256SUMS</code>.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/corpus">corpus</a></dt><dd>Test cases and their Saxon-HE results, one directory per rule set.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/scripts">scripts</a></dt><dd><code>check.sh</code>, <code>fetch-saxon.sh</code> and the other repository scripts.</dd>
+</dl>
+
+<footer><a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/LICENSE">MIT licensed</a> · <a href="https://github.com/einvoice-validator/einvoice-validator">Source</a> · <a href="https://github.com/einvoice-validator/einvoice-validator/issues">Issues</a> · <a href="https://github.com/einvoice-validator">GitHub</a></footer>
+</main>
+</body>
+</html>
