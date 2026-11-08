@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>einvoice-validator: official EN 16931 and Peppol rules, in pure Rust</title>
-<meta name="description" content="Validate EN 16931 and Peppol BIS Billing 3.0 UBL e-invoices against the official validation artefacts, in pure Rust: a library and the einvoice-validate command-line tool, with exact decimals and the same reports as Saxon-HE on the whole CEN and Peppol test corpora. Pre-alpha, usable from source.">
+<meta name="description" content="Validate EN 16931 and Peppol BIS Billing 3.0 UBL e-invoices against the official validation artefacts, in pure Rust: a library and the einvoice-validate command-line tool, with exact decimals and the same reports as Saxon-HE on the whole CEN and Peppol test corpora. Version 0.1.0, on crates.io.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=1">
@@ -19,12 +19,14 @@
 <p class="lead">Validation of European e-invoices against the <strong>official</strong> published validation artefacts, in pure Rust: no JVM, no C library, no FFI. A library and a command-line tool that run the official stylesheets unchanged, with exact decimal arithmetic, and give the same report as Saxon-HE, rule by rule.</p>
 
 <aside class="status" aria-label="Project status">
-<p><strong>Pre-alpha, no release yet: usable from source.</strong> The library <code>einvoice-validator</code> and the command-line tool <code>einvoice-validate</code> validate UBL 2.1 invoices and credit notes: the XML, the UBL 2.1 schema, then the official stylesheets of the rule set. Install them from a clone of the repository (<a href="#use">Use it</a>); nothing is published on crates.io, and before 1.0 the API may change.</p>
-<p>Done: CEN EN 16931 UBL 1.3.17 built in, Peppol BIS Billing 3.0.22 as a bundle built locally from its pinned release; on every case of both test corpora, official and mutated, the same SVRL report as Saxon-HE 12.10 (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>). Still open: the first release (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>), WebAssembly bindings and an npm package (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>), other rule sets (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/12">#12</a>). Follow the <a href="https://github.com/einvoice-validator/einvoice-validator/issues">tracking issues</a>.</p>
+<p><strong>0.1.0 released</strong> (<a href="https://github.com/einvoice-validator/einvoice-validator/releases/tag/v0.1.0">release notes</a>). The library <a href="https://crates.io/crates/einvoice-validator"><code>einvoice-validator</code></a> (<a href="https://docs.rs/einvoice-validator">API documentation</a>) and the command-line tool <code>einvoice-validate</code> (crate <a href="https://crates.io/crates/einvoice-cli"><code>einvoice-cli</code></a>) validate UBL 2.1 invoices and credit notes: the XML, the UBL 2.1 schema, then the official stylesheets of the rule set. Install them from crates.io (<a href="#use">Use it</a>). Still pre-1.0: a minor version may change the API.</p>
+<p>Done: CEN EN 16931 UBL 1.3.17 built in, Peppol BIS Billing 3.0.22 as a bundle built locally from its pinned release; on every case of both test corpora, official and mutated, the same SVRL report as Saxon-HE 12.10 (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>). Still open: publishing releases from CI with crates.io trusted publishing (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>), WebAssembly bindings and an npm package (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>), other rule sets (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/12">#12</a>). Follow the <a href="https://github.com/einvoice-validator/einvoice-validator/issues">tracking issues</a>.</p>
 </aside>
 
 <div class="links">
 <a href="#use">Use it</a>
+<a href="https://crates.io/crates/einvoice-validator">crates.io</a>
+<a href="https://docs.rs/einvoice-validator">API documentation</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator">Repository</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator/issues">Issues and roadmap</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/CHANGELOG.md">Changelog</a>
@@ -43,7 +45,9 @@
 </ul>
 
 <h2 id="use">Use it</h2>
-<p>There is no release yet: install the command-line tool from a clone of the repository. The toolchain (Rust 1.99.1) is pinned in <code>rust-toolchain.toml</code> and installed by <a href="https://rustup.rs/">rustup</a> on first use.</p>
+<p>Install the command-line tool from crates.io, with Rust 1.99 or later (<a href="https://rustup.rs/">rustup</a>):</p>
+<pre><code>cargo install --locked einvoice-cli                  # installs einvoice-validate</code></pre>
+<p>or from a clone of the repository, where the toolchain (Rust 1.99.1) is pinned in <code>rust-toolchain.toml</code> and installed by rustup on first use (<a href="docs.html#build">Build and install from source</a>):</p>
 <pre><code>git clone https://github.com/einvoice-validator/einvoice-validator.git
 cd einvoice-validator
 cargo install --locked --path crates/einvoice-cli    # installs einvoice-validate</code></pre>
@@ -63,13 +67,13 @@ broken.xml: invalid: 1 schema error, 11 fatal
 2 documents: 1 valid, 1 invalid, 0 not validated</code></pre>
 <p>Exit status, the highest that applies: <code>0</code> every document is valid (no schema error, no finding with flag <code>fatal</code>); <code>1</code> a document is invalid (schema errors, fatal findings, or not well-formed XML); <code>2</code> usage error, or a file or bundle that cannot be read or is not valid; <code>3</code> a construct the engine does not support, a stylesheet error on a document, or an internal error. Output as <code>text</code> (for people), <code>json</code> (a versioned format, for scripts) or <code>svrl</code>; with <code>--jobs N</code>, N threads share one loaded rule set and the output keeps the order of the command line. Options and the JSON format: <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-cli/README.md"><code>crates/einvoice-cli/README.md</code></a>.</p>
 <h3 id="peppol">Peppol BIS Billing 3.0</h3>
-<p>Its files carry no licence, so they are not part of the repository. <code>scripts/fetch-peppol.sh</code> (Java and network access the first time) downloads the pinned 3.0.22 release, compiles its two stylesheets, the Peppol rules and the CEN rules the release embeds, and writes next to them the <code>bundle.toml</code> that names them with their checksums. The directory is then a bundle:</p>
+<p>Its files carry no licence, so they are not part of the repository or of the crates. <code>scripts/fetch-peppol.sh</code>, in a clone of the repository (Java and network access the first time), downloads the pinned 3.0.22 release, compiles its two stylesheets, the Peppol rules and the CEN rules the release embeds, and writes next to them the <code>bundle.toml</code> that names them with their checksums. The directory is then a bundle:</p>
 <pre><code>scripts/fetch-peppol.sh                     # into target/peppol/
 einvoice-validate --bundle target/peppol/peppol-bis-billing-ubl-3.0.22 invoice.xml</code></pre>
 <h3 id="library">Library</h3>
-<p>A <code>Validator</code> is built once from a rule set (schemas loaded, stylesheets prepared), is <code>Send + Sync</code>, and validates any number of documents. With no release yet, depend on the repository:</p>
+<p>A <code>Validator</code> is built once from a rule set (schemas loaded, stylesheets prepared), is <code>Send + Sync</code>, and validates any number of documents. Add it from crates.io (<a href="https://docs.rs/einvoice-validator">API documentation on docs.rs</a>):</p>
 <pre><code>[dependencies]
-einvoice-validator = { git = "https://github.com/einvoice-validator/einvoice-validator" }</code></pre>
+einvoice-validator = "0.1"</code></pre>
 <pre><code>use einvoice_validator::{Validator, Verdict};
 
 fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
@@ -161,7 +165,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><td>Execute and report</td><td>XSLT executor: template rules, modes, priorities, <code>xsl:next-match</code>, functions, parameters; SVRL output. The stylesheet is prepared once and run on any number of documents (<code>einvoice-xslt-exec</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/2">#2</a>)</td><td><span class="tag done">done</span></td></tr>
 <tr><td>Library and tool</td><td>Rule-set bundles (a <code>bundle.toml</code> manifest with the SHA-256 of each stylesheet), the <code>Validator</code> and its <code>Report</code> (<code>einvoice-validator</code>); the <code>einvoice-validate</code> command-line tool with text, JSON and SVRL output and documented exit codes (<code>einvoice-cli</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>)</td><td><span class="tag done">done</span></td></tr>
 <tr><td>WebAssembly</td><td>The library on <code>wasm32-unknown-unknown</code>, the date and time given by the caller; CI validates two corpus documents with the built-in rule set under wasmtime. Bindings and an npm package to come (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>)</td><td><span class="tag wip">in progress</span></td></tr>
-<tr><td>Release</td><td>The crates are packaged and built from their packages in CI, with their licence texts; none is published on crates.io yet, and there is no tagged release (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>)</td><td><span class="tag wip">in progress</span></td></tr>
+<tr><td>Release</td><td>0.1.0: the nine crates of the workspace on <a href="https://crates.io/crates/einvoice-validator">crates.io</a>, each with its licence texts, and a signed tag with its <a href="https://github.com/einvoice-validator/einvoice-validator/releases/tag/v0.1.0">GitHub release</a>; publishing from CI with crates.io trusted publishing to come (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>)</td><td><span class="tag done">done</span></td></tr>
 </tbody>
 </table>
 </div>
@@ -193,7 +197,7 @@ fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <li><strong>Lints.</strong> Every warning is an error; clippy <code>all</code> and <code>pedantic</code> are denied; <code>unwrap</code>, <code>expect</code> and <code>panic</code> are denied outside tests; <code>unsafe</code> code is forbidden.</li>
 <li><strong>Tests.</strong> Unit, golden and property-based tests (proptest); on Linux for every push to <code>main</code>, also on macOS and Windows for pull requests; the library without its built-in rule set, and on <code>wasm32-unknown-unknown</code> under wasmtime.</li>
 <li><strong>Supply chain.</strong> Toolchain pinned (Rust 1.99.1), <code>Cargo.lock</code> committed and every cargo command <code>--locked</code>; licences, advisories and sources checked by <code>cargo-deny</code>; GitHub Actions pinned by commit SHA, linted by actionlint and audited by zizmor; signed commits. Dependabot and a weekly check report newer versions of the pinned upstreams: rule sets, Saxon-HE, toolchain, CI tools.</li>
-<li><strong>Releases.</strong> A changelog checked on every pull request, and a release script and workflow that check the tag, the workspace version and the changelog agree. No release yet.</li>
+<li><strong>Releases.</strong> A changelog checked on every pull request, and a release script and workflow that check the tag, the workspace version and the changelog agree. Each release states the rule-set versions it was tested against; the first, <a href="https://github.com/einvoice-validator/einvoice-validator/releases/tag/v0.1.0">0.1.0</a>, was tested against CEN 1.3.17 and Peppol BIS Billing 3.0.22.</li>
 <li><strong>Same checks everywhere.</strong> CI and a local run use the same script: see <a href="docs.html">Build and test</a>.</li>
 </ul>
 
