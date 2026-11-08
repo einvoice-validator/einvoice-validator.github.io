@@ -109,7 +109,7 @@ cargo xtask oracle
 # einvoice-xdm, einvoice-xpath-eval and einvoice-xslt-exec
 scripts/check.sh oracle</code></pre>
 <p><code>--write</code> regenerates instead of checking (<code>manifest</code>, <code>corpus</code>, <code>oracle</code>). <code>cargo xtask oracle</code> also takes <code>--java JAVA</code> and <code>--saxon JAR</code>; <code>scripts/check.sh oracle</code> reads them from the <code>JAVA</code> and <code>SAXON_JAR</code> environment variables. Without Java, <code>scripts/check.sh oracle</code> runs the manifest, corpus and cross-check and skips the Saxon runs (in CI it fails instead). <code>cargo test</code> covers the manifest, extraction and cross-check without Java.</p>
-<p>Schema validation has its own oracle, xmllint (libxml2), on 1546 cases: the corpus documents, synthetic documents and mutations of them. Every difference from xmllint is listed with its cause in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-xsd/tests/oracle/README.md">crates/einvoice-xsd/tests/oracle/</a>.</p>
+<p>Schema validation has its own oracle, xmllint (libxml2), on 1555 cases: the corpus documents, synthetic documents and mutations of them. Every difference from xmllint is listed with its cause in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-xsd/tests/oracle/README.md">crates/einvoice-xsd/tests/oracle/</a>.</p>
 <pre><code># run xmllint on every case, check the committed results, compare
 cargo run --release --locked -p einvoice-xsd --example xmllint-oracle</code></pre>
 
