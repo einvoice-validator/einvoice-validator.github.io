@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>einvoice-validator: official EN 16931 and Peppol rules, in pure Rust</title>
-<meta name="description" content="An XSLT 2.0 and XPath 2.0 engine in pure Rust, built to run the official EN 16931 and Peppol BIS Billing 3.0 validation artefacts unchanged, with exact decimals. Its reports match Saxon-HE on the whole CEN EN 16931 UBL test corpus. Pre-alpha.">
+<meta name="description" content="Validate EN 16931 and Peppol BIS Billing 3.0 UBL e-invoices against the official validation artefacts, in pure Rust: a library and the einvoice-validate command-line tool, with exact decimals and the same reports as Saxon-HE on the whole CEN and Peppol test corpora. Pre-alpha, usable from source.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=1">
@@ -16,14 +16,15 @@
 
 <p class="eyebrow">EN 16931 · Peppol BIS Billing 3.0</p>
 <h1>einvoice-validator</h1>
-<p class="lead">Validation of European e-invoices against the <strong>official</strong> published validation artefacts, in pure Rust: no JVM, no C library, no FFI. Built to run the official stylesheets unchanged, with exact decimal arithmetic, and to give the same report as Saxon-HE, rule by rule.</p>
+<p class="lead">Validation of European e-invoices against the <strong>official</strong> published validation artefacts, in pure Rust: no JVM, no C library, no FFI. A library and a command-line tool that run the official stylesheets unchanged, with exact decimal arithmetic, and give the same report as Saxon-HE, rule by rule.</p>
 
 <aside class="status" aria-label="Project status">
-<p><strong>Pre-alpha: not usable as a validator yet.</strong> There is no release, no public API and no command-line tool, and nothing is published on crates.io.</p>
-<p>Done: the engine runs the official CEN EN 16931 UBL 1.3.17 stylesheet and writes an SVRL report identical to the one Saxon-HE 12.10 writes, on all 1179 cases of the test corpus; UBL 2.1 XML Schema validation in Rust. Still open: the public API and command-line tool (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>, in progress), the Peppol BIS Billing 3.0.22 corpus and equivalence (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/4">#4</a>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>), a WebAssembly build (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>). Follow the <a href="https://github.com/einvoice-validator/einvoice-validator/issues">tracking issues</a>.</p>
+<p><strong>Pre-alpha, no release yet: usable from source.</strong> The library <code>einvoice-validator</code> and the command-line tool <code>einvoice-validate</code> validate UBL 2.1 invoices and credit notes: the XML, the UBL 2.1 schema, then the official stylesheets of the rule set. Install them from a clone of the repository (<a href="#use">Use it</a>); nothing is published on crates.io, and before 1.0 the API may change.</p>
+<p>Done: CEN EN 16931 UBL 1.3.17 built in, Peppol BIS Billing 3.0.22 as a bundle built locally from its pinned release; on every case of both test corpora, official and mutated, the same SVRL report as Saxon-HE 12.10 (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>). Still open: the first release (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>), WebAssembly bindings and an npm package (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>), other rule sets (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/12">#12</a>). Follow the <a href="https://github.com/einvoice-validator/einvoice-validator/issues">tracking issues</a>.</p>
 </aside>
 
 <div class="links">
+<a href="#use">Use it</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator">Repository</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator/issues">Issues and roadmap</a>
 <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/CHANGELOG.md">Changelog</a>
@@ -32,14 +33,61 @@
 </div>
 
 <h2 id="what">What it is</h2>
-<p>The business rules of EN 16931 and of Peppol BIS Billing 3.0 are published by CEN and OpenPeppol as Schematron, which validators run compiled to XSLT 2.0 stylesheets. einvoice-validator is an XSLT 2.0 and XPath 2.0 engine, written in Rust, built to run those stylesheets as they are published.</p>
+<p>The business rules of EN 16931 and of Peppol BIS Billing 3.0 are published by CEN and OpenPeppol as Schematron, which validators run compiled to XSLT 2.0 stylesheets. einvoice-validator is an XSLT 2.0 and XPath 2.0 engine, written in Rust, that runs those stylesheets as they are published, with UBL 2.1 schema validation in front of them, behind a library and a command-line tool.</p>
 <ul>
-<li><strong>The official artefacts are the rules.</strong> No rule is translated into Rust by hand. The CEN artefacts are vendored byte for byte, with their checksums.</li>
+<li><strong>The official artefacts are the rules.</strong> No rule is translated into Rust by hand. The CEN artefacts are vendored byte for byte, with their checksums; the Peppol files are fetched from their pinned release and compiled, every input and output checked against a pinned checksum.</li>
 <li><strong>A closed subset.</strong> The engine implements the XSLT and XPath the official stylesheets use, nothing more. Anything else is refused when the stylesheet is loaded, never skipped.</li>
 <li><strong>Exact numbers.</strong> <code>xs:decimal</code> and <code>xs:integer</code> are arbitrary precision, as the amount and total rules require; no floating-point stand-in.</li>
-<li><strong>The reference engine decides.</strong> The expected result is the report Saxon-HE 12.10 produces for the same document: same fired rules, same failed asserts and successful reports, with the same id, flag, location and text, in the same order. On the CEN UBL 1.3.17 corpus, all 1179 reports are identical (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>).</li>
-<li><strong>Pure Rust.</strong> No Java runtime, no C library, no FFI. A library and command-line tool (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>) and a WebAssembly build (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>) are planned.</li>
+<li><strong>The reference engine decides.</strong> The expected result is the report Saxon-HE 12.10 produces for the same document: same fired rules, same failed asserts and successful reports, with the same id, flag, location and text, in the same order. On the CEN UBL 1.3.17 corpus (1179 cases and 504 mutation cases) and on the Peppol BIS Billing 3.0.22 corpus (707 cases and 505 mutation cases, with each of its two stylesheets), every report is identical.</li>
+<li><strong>Pure Rust.</strong> No Java runtime, no C library, no FFI, no <code>unsafe</code> code. The library also runs on <code>wasm32-unknown-unknown</code>: CI validates documents with it under wasmtime; bindings and an npm package are pending (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>).</li>
 </ul>
+
+<h2 id="use">Use it</h2>
+<p>There is no release yet: install the command-line tool from a clone of the repository. The toolchain (Rust 1.99.1) is pinned in <code>rust-toolchain.toml</code> and installed by <a href="https://rustup.rs/">rustup</a> on first use.</p>
+<pre><code>git clone https://github.com/einvoice-validator/einvoice-validator.git
+cd einvoice-validator
+cargo install --locked --path crates/einvoice-cli    # installs einvoice-validate</code></pre>
+<p>The built-in rule set is CEN EN 16931 UBL 1.3.17, with the UBL 2.1 schemas:</p>
+<pre><code>einvoice-validate invoice.xml
+einvoice-validate --format json --jobs 4 invoices/*.xml &gt; report.json
+einvoice-validate --format svrl - &lt; invoice.xml      # the SVRL report, as the stylesheet wrote it
+einvoice-validate --bundle DIR invoice.xml           # a rule-set bundle: DIR/bundle.toml and its stylesheets</code></pre>
+<pre><code>$ einvoice-validate invoice.xml broken.xml
+invoice.xml: valid
+broken.xml: invalid: 1 schema error, 11 fatal
+  schema   2:1: missing-element: element ubl:Invoice: content incomplete; expected: ext:UBLExtensions, cbc:UBLVersionID, cbc:CustomizationID, cbc:ProfileID, cbc:ProfileExecutionID, cbc:ID
+  ...
+  fatal    BR-02: [BR-02]-An Invoice shall have an Invoice number (BT-1).
+           at /*:Invoice[namespace-uri()='urn:oasis:names:specification:ubl:schema:xsd:Invoice-2'][1]
+  ...
+2 documents: 1 valid, 1 invalid, 0 not validated</code></pre>
+<p>Exit status, the highest that applies: <code>0</code> every document is valid (no schema error, no finding with flag <code>fatal</code>); <code>1</code> a document is invalid (schema errors, fatal findings, or not well-formed XML); <code>2</code> usage error, or a file or bundle that cannot be read or is not valid; <code>3</code> a construct the engine does not support, a stylesheet error on a document, or an internal error. Output as <code>text</code> (for people), <code>json</code> (a versioned format, for scripts) or <code>svrl</code>; with <code>--jobs N</code>, N threads share one loaded rule set and the output keeps the order of the command line. Options and the JSON format: <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-cli/README.md"><code>crates/einvoice-cli/README.md</code></a>.</p>
+<h3 id="peppol">Peppol BIS Billing 3.0</h3>
+<p>Its files carry no licence, so they are not part of the repository. <code>scripts/fetch-peppol.sh</code> (Java and network access the first time) downloads the pinned 3.0.22 release, compiles its two stylesheets, the Peppol rules and the CEN rules the release embeds, and writes next to them the <code>bundle.toml</code> that names them with their checksums. The directory is then a bundle:</p>
+<pre><code>scripts/fetch-peppol.sh                     # into target/peppol/
+einvoice-validate --bundle target/peppol/peppol-bis-billing-ubl-3.0.22 invoice.xml</code></pre>
+<h3 id="library">Library</h3>
+<p>A <code>Validator</code> is built once from a rule set (schemas loaded, stylesheets prepared), is <code>Send + Sync</code>, and validates any number of documents. With no release yet, depend on the repository:</p>
+<pre><code>[dependencies]
+einvoice-validator = { git = "https://github.com/einvoice-validator/einvoice-validator" }</code></pre>
+<pre><code>use einvoice_validator::{Validator, Verdict};
+
+fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Built once: the UBL 2.1 schemas loaded, the CEN stylesheet prepared.
+    // A Validator is Send + Sync: share it between threads.
+    let validator = Validator::cen_ubl()?;
+    let report = validator.validate(&amp;std::fs::read("invoice.xml")?)?;
+    for error in &amp;report.schema_errors {
+        println!("schema {}:{}: {}", error.line, error.column, error.message);
+    }
+    for finding in report.findings() {
+        let id = finding.id.as_deref().unwrap_or("-");
+        println!("{:?} {id}: {} (at {})", finding.severity, finding.text, finding.location);
+    }
+    println!("{}", if report.verdict() == Verdict::Valid { "valid" } else { "invalid" });
+    Ok(())
+}</code></pre>
+<p><code>Validator::from_bundle_dir</code> loads a bundle directory such as the Peppol one. The <code>Report</code> also gives the raw and canonical SVRL and the rule-set version; <code>validate_owned</code> takes the document as an owned buffer and avoids a copy of its text.</p>
 
 <h2 id="why">Why run the official stylesheets</h2>
 <p>The validation artefacts are the reference definition of the rules. Running them unchanged means a new release of the rules is new data to vendor and test, not code to rewrite, and a result can always be traced back to the published rule that produced it.</p>
@@ -100,7 +148,7 @@
 <path class="arrow" d="M150 276v20"/><path class="head" d="M150 304l-6-10h12z"/>
 <path class="arrow" d="M150 430v20"/><path class="head" d="M150 458l-6-10h12z"/>
 </svg>
-<figcaption>The pipeline. Every stage exists as a crate and is tested; joining them behind a public API and a command-line tool is in progress (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>). SVRL (Schematron Validation Report Language) is the report format the official stylesheets write.</figcaption>
+<figcaption>The pipeline, behind the library <code>einvoice-validator</code> and the command-line tool <code>einvoice-validate</code>: the document is checked as XML, then against the UBL 2.1 schema, then each stylesheet of the rule set runs on it. SVRL (Schematron Validation Report Language) is the report format the official stylesheets write.</figcaption>
 </figure>
 <div class="table-wrap">
 <table>
@@ -109,9 +157,11 @@
 <tr><td>Schema check</td><td>UBL 2.1 XML Schema validation in Rust against the official OASIS schemas, limited to the XSD features they use; compared with xmllint (<code>einvoice-xsd</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/6">#6</a>)</td><td><span class="tag done">done</span></td></tr>
 <tr><td>Load</td><td>The stylesheet is parsed, its XPath expressions and patterns with it; constructs outside the subset are refused (<code>einvoice-xslt</code>, <code>einvoice-xpath</code>)</td><td><span class="tag done">done</span></td></tr>
 <tr><td>Values</td><td>XPath 2.0 atomic values: exact decimals, big integers, doubles, dates, casts, comparisons, regular expressions, as Saxon-HE 12.10 behaves (<code>einvoice-xdm</code>)</td><td><span class="tag done">done</span></td></tr>
-<tr><td>Evaluate</td><td>XPath 2.0 evaluator over the invoice; unknown functions and variables are refused when an expression is compiled (<code>einvoice-xpath-eval</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/1">#1</a>)</td><td><span class="tag done">done</span></td></tr>
+<tr><td>Evaluate</td><td>XPath 2.0 evaluator over the invoice; unknown functions and variables are refused when an expression is compiled; the current date and time come from a clock the caller can give (<code>einvoice-xpath-eval</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/1">#1</a>)</td><td><span class="tag done">done</span></td></tr>
 <tr><td>Execute and report</td><td>XSLT executor: template rules, modes, priorities, <code>xsl:next-match</code>, functions, parameters; SVRL output. The stylesheet is prepared once and run on any number of documents (<code>einvoice-xslt-exec</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/2">#2</a>)</td><td><span class="tag done">done</span></td></tr>
-<tr><td>Library and tool</td><td>Public API: load the rule sets once, validate many documents, return a structured report; command-line tool (<code>einvoice-validator</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>)</td><td><span class="tag wip">in progress</span></td></tr>
+<tr><td>Library and tool</td><td>Rule-set bundles (a <code>bundle.toml</code> manifest with the SHA-256 of each stylesheet), the <code>Validator</code> and its <code>Report</code> (<code>einvoice-validator</code>); the <code>einvoice-validate</code> command-line tool with text, JSON and SVRL output and documented exit codes (<code>einvoice-cli</code>, <a href="https://github.com/einvoice-validator/einvoice-validator/issues/10">#10</a>)</td><td><span class="tag done">done</span></td></tr>
+<tr><td>WebAssembly</td><td>The library on <code>wasm32-unknown-unknown</code>, the date and time given by the caller; CI validates two corpus documents with the built-in rule set under wasmtime. Bindings and an npm package to come (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/9">#9</a>)</td><td><span class="tag wip">in progress</span></td></tr>
+<tr><td>Release</td><td>The crates are packaged and built from their packages in CI, with their licence texts; none is published on crates.io yet, and there is no tagged release (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/17">#17</a>)</td><td><span class="tag wip">in progress</span></td></tr>
 </tbody>
 </table>
 </div>
@@ -121,8 +171,8 @@
 <table>
 <thead><tr><th scope="col">Rule set</th><th scope="col">Release</th><th scope="col">Artefacts</th><th scope="col">Status</th></tr></thead>
 <tbody>
-<tr><td>CEN EN 16931, UBL syntax</td><td>1.3.17</td><td>Compiled XSLT published by CEN, vendored unmodified</td><td><span class="tag done">corpus</span> 1179 cases with Saxon-HE results<br><span class="tag done">engine</span> 1179 / 1179 reports identical to Saxon-HE; own mutation cases to come (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>)</td></tr>
-<tr><td>Peppol BIS Billing 3.0</td><td>3.0.22</td><td>Schematron sources, fetched at test time from a pinned release</td><td><span class="tag later">to do</span> corpus (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/4">#4</a>), validation (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>)</td></tr>
+<tr><td>CEN EN 16931, UBL syntax</td><td>1.3.17</td><td>Compiled XSLT published by CEN, vendored unmodified; built into the library and the tool as the rule set <code>cen-ubl</code></td><td><span class="tag done">corpus</span> 1179 cases and 504 mutation cases, with Saxon-HE results<br><span class="tag done">engine</span> 1179 / 1179 and 504 / 504 reports identical to Saxon-HE (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/3">#3</a>)</td></tr>
+<tr><td>Peppol BIS Billing 3.0, UBL syntax</td><td>3.0.22</td><td>Not redistributed (no licence upstream): the pinned release is fetched and its Peppol and CEN Schematron compiled to XSLT locally, checksums verified, into a bundle for <code>--bundle</code></td><td><span class="tag done">corpus</span> 707 cases and 505 mutation cases, built locally, with Saxon-HE results (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/4">#4</a>)<br><span class="tag done">engine</span> 707 / 707 and 505 / 505 reports identical to Saxon-HE, with each of the two stylesheets (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/5">#5</a>)</td></tr>
 <tr><td>UBL 2.1 XML Schema (Invoice, CreditNote)</td><td>2.1</td><td>OASIS UBL 2.1 schemas, vendored unmodified and embedded</td><td><span class="tag done">done</span> compared with xmllint (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/6">#6</a>)</td></tr>
 <tr><td>CEN EN 16931 CII, XRechnung, Factur-X / ZUGFeRD</td><td></td><td></td><td><span class="tag later">later</span> (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/12">#12</a>)</td></tr>
 </tbody>
@@ -132,13 +182,16 @@
 
 <h2 id="quality">Quality</h2>
 <ul>
-<li><strong>Reference results.</strong> 1179 cases from the official CEN UBL 1.3.17 examples, test files and unit tests, each with the SVRL report Saxon-HE 12.10 produces, in a canonical text form. CI runs Saxon again and the results must not change; they are cross-checked against the expectations of the official unit tests, with no disagreement.</li>
-<li><strong>Same reports as Saxon-HE.</strong> On all 1179 cases, the canonical report of the engine is identical to Saxon's, line for line. Each crate is also checked on its own: the atomic values against Saxon-HE on over 5000 operations, the evaluator on every distinct expression of the CEN stylesheet (956) at nodes of corpus documents, the executor on synthetic probe stylesheets.</li>
+<li><strong>Reference results.</strong> For each rule set, the official examples, test files and unit tests, each with the SVRL report Saxon-HE 12.10 produces, in a canonical text form: 1179 CEN cases, 707 Peppol cases. They are cross-checked against the expectations written in the official unit tests, with no disagreement (1131 CEN and 678 Peppol unit-test cases). CI runs Saxon again and the CEN results must not change; the Peppol corpus is rebuilt whenever the engine changes.</li>
+<li><strong>Mutation cases.</strong> A catalogue of edits of the official examples, aimed at what the rules check and where engines can diverge: totals and rounding, decimal precision, number and date forms, VAT categories, code lists, check digits, namespaces, repeated elements. 504 CEN and 505 Peppol cases; they raise the number of distinct CEN asserts that fire in the corpus from 235 to 973 of 982. Where Saxon-HE stops with a dynamic error, the engine stops with the same error code.</li>
+<li><strong>Same reports as Saxon-HE.</strong> On every case of both corpora, the canonical report of the engine is identical to Saxon's, line for line, and the verdicts and findings of the library and of <code>einvoice-validate</code> agree with them. Each crate is also checked on its own: the atomic values against Saxon-HE on over 5000 operations, the evaluator on every distinct expression of the CEN stylesheet (956) at nodes of corpus documents, the executor on synthetic probe stylesheets.</li>
 <li><strong>Schema validation compared with xmllint.</strong> 1546 cases: the 1179 corpus documents, synthetic documents and mutations of them. Every corpus document gets the same result; the 25 verdicts that differ are cases where libxml2 departs from XML Schema 1.0, each listed with its cause.</li>
-<li><strong>Speed and memory.</strong> The whole CEN corpus (1179 documents, 4.6 MB) on one thread takes about 0.5 s, stylesheet load included: 0.4 ms per document on average. Saxon-HE 12.10 on the same machine takes about 1.4 s with one thread and 1.0 s with eight, JVM start and stylesheet compilation included. The prepared stylesheet keeps about 3.7 MiB of heap. Commands to reproduce: <a href="docs.html#performance">Build and test</a>.</li>
-<li><strong>Integrity.</strong> Vendored artefacts are checked against their SHA-256 sums; Saxon-HE and the XML Resolver it needs, used only in tests, are downloaded from Maven Central and their checksums verified.</li>
+<li><strong>Speed.</strong> <code>einvoice-validate --format json</code> on the whole CEN corpus (1179 documents, 4.6 MB), XML, schema and stylesheet checks, process start and rule-set load included, takes about 0.6 s with one thread and 0.13 s with <code>--jobs 8</code>; a single invoice about 50 ms. Saxon-HE 12.10, running the stylesheet alone (no schema validation) over the same documents, takes about 1.4 s with one thread and 1.0 s with eight, JVM start and stylesheet compilation included. With the Peppol bundle, the 707 Peppol documents (both stylesheets) take about 0.86 s, or 0.16 s with eight threads. Commands and details: <a href="docs.html#performance">Build and test</a>.</li>
+<li><strong>Memory.</strong> Loaded, the built-in rule set (schemas and prepared stylesheet) keeps about 5.4 MiB of heap; validating the largest corpus document (3.3 MB) peaks at about 12.3 MiB above it, in the schema stage. The stylesheet stage alone peaks at about 3.2 MiB above the prepared stylesheet on that document when it is given the text, which its tree then keeps instead of copying (6.3 MiB when it copies it).</li>
+<li><strong>WebAssembly size.</strong> The <code>wasm-validate</code> example, which embeds the UBL 2.1 schemas (2.9 MB) and the CEN stylesheet (0.9 MB), is 6.5 MB in a release build and 5.4 MB with <code>opt-level = "z"</code>, LTO, one codegen unit and stripping; it imports nothing.</li>
+<li><strong>Integrity.</strong> Vendored artefacts are checked against their SHA-256 sums, and so are the Peppol release, the compiled Peppol stylesheets and the stylesheets of every bundle; Saxon-HE and the XML Resolver it needs, used only in tests, are downloaded from Maven Central and their checksums verified.</li>
 <li><strong>Lints.</strong> Every warning is an error; clippy <code>all</code> and <code>pedantic</code> are denied; <code>unwrap</code>, <code>expect</code> and <code>panic</code> are denied outside tests; <code>unsafe</code> code is forbidden.</li>
-<li><strong>Tests.</strong> Unit, golden and property-based tests (proptest); on Linux for every push to <code>main</code>, also on macOS and Windows for pull requests.</li>
+<li><strong>Tests.</strong> Unit, golden and property-based tests (proptest); on Linux for every push to <code>main</code>, also on macOS and Windows for pull requests; the library without its built-in rule set, and on <code>wasm32-unknown-unknown</code> under wasmtime.</li>
 <li><strong>Supply chain.</strong> Toolchain pinned (Rust 1.99.1), <code>Cargo.lock</code> committed and every cargo command <code>--locked</code>; licences, advisories and sources checked by <code>cargo-deny</code>; GitHub Actions pinned by commit SHA, linted by actionlint and audited by zizmor; signed commits. Dependabot and a weekly check report newer versions of the pinned upstreams: rule sets, Saxon-HE, toolchain, CI tools.</li>
 <li><strong>Releases.</strong> A changelog checked on every pull request, and a release script and workflow that check the tag, the workspace version and the changelog agree. No release yet.</li>
 <li><strong>Same checks everywhere.</strong> CI and a local run use the same script: see <a href="docs.html">Build and test</a>.</li>
@@ -147,8 +200,10 @@
 <h2 id="licences">Licences</h2>
 <ul>
 <li>The code: <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/LICENSE">MIT</a>.</li>
-<li>The vendored CEN artefacts (<code>artefacts/cen-en16931-ubl-1.3.17/</code>) and the test corpus derived from them (<code>corpus/cen-en16931-ubl-1.3.17/</code>) keep their upstream licence, the European Union Public Licence 1.2 (EUPL-1.2).</li>
+<li>The vendored CEN artefacts (<code>artefacts/cen-en16931-ubl-1.3.17/</code>) and the test corpus derived from them, its mutation cases included (<code>corpus/cen-en16931-ubl-1.3.17/</code>), keep their upstream licence, the European Union Public Licence 1.2 (EUPL-1.2).</li>
+<li><code>einvoice-validator</code> embeds the CEN stylesheet through its default feature <code>cen-ubl</code>, and so does the <code>einvoice-validate</code> binary: those two crates are licensed <code>MIT AND EUPL-1.2</code>. Built with <code>default-features = false</code>, the library embeds no rule set and uses only the bundles it is given.</li>
 <li>The OASIS UBL 2.1 schemas (<code>crates/einvoice-xsd/schemas/oasis-ubl-2.1/</code>) are vendored unmodified and embedded in <code>einvoice-xsd</code>; they are not under the MIT licence, each keeps the terms in its own header (OASIS, UN/CEFACT, W3C; the two ETSI XAdES schemas carry none). The crate declares those terms next to MIT, with their texts in <a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xsd/LICENSES"><code>crates/einvoice-xsd/LICENSES/</code></a>.</li>
+<li>Peppol BIS Billing 3.0 files are fetched into <code>target/peppol/</code> and not redistributed; nothing derived from them is committed.</li>
 <li>Saxon-HE 12.10 (MPL-2.0) and the XML Resolver (Apache-2.0) are not part of the repository: the tests download them. xmllint is the reference of the schema tests only.</li>
 </ul>
 
