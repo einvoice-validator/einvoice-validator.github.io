@@ -15,7 +15,7 @@
 <header class="top"><a href="./" class="brand"><img src="favicon.svg" alt="" width="28" height="28">einvoice-validator</a><span><a href="docs.html" aria-current="page">Docs</a> <a href="https://github.com/einvoice-validator" class="gh" aria-label="einvoice-validator on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></span></header>
 <nav class="toc" aria-label="On this page"><a href="./">← Home</a> <a href="#requirements">Requirements</a> <a href="#build">Build and install</a> <a href="#checks">Checks</a> <a href="#tests">Tests</a> <a href="#oracle">Corpus and oracle</a> <a href="#peppol">Peppol</a> <a href="#fetched">Factur-X, XRechnung, French rules</a> <a href="#performance">Performance</a> <a href="#layout">Layout</a></nav>
 <h1>Build and test</h1>
-<p class="lead">For contributors, and for anyone who wants to check the claims: everything on this page runs in a clone of the repository. To validate invoices with the released version, 0.3.0 on crates.io, see <a href="./#use">Use it</a>; the commands below build the workspace and check the engine, the library and the command-line tool against Saxon-HE on the corpus of every rule set.</p>
+<p class="lead">For contributors, and for anyone who wants to check the claims: everything on this page runs in a clone of the repository. To validate invoices with the released version, 0.4.0 on crates.io, see <a href="./#use">Use it</a>; the commands below build the workspace and check the engine, the library and the command-line tool against Saxon-HE on the corpus of every rule set.</p>
 
 <h2 id="requirements">Requirements</h2>
 <ul>
@@ -29,7 +29,7 @@
 <h2 id="build">Build and install from source</h2>
 <p>The released command-line tool installs from crates.io without a clone, with Rust 1.99 or later; the library is the crate <a href="https://crates.io/crates/einvoice-validator"><code>einvoice-validator</code></a>, documented on <a href="https://docs.rs/einvoice-validator">docs.rs</a>:</p>
 <pre><code>cargo install --locked einvoice-cli
-# in Cargo.toml: einvoice-validator = "0.3"</code></pre>
+# in Cargo.toml: einvoice-validator = "0.4"</code></pre>
 <p>From a clone, for the current <code>main</code>:</p>
 <pre><code>git clone https://github.com/einvoice-validator/einvoice-validator.git
 cd einvoice-validator
@@ -160,7 +160,7 @@ cargo xtask xrechnung                     # the corpora and their Saxon-HE resul
 cargo test -p einvoice-xslt-exec --release --locked --test xrechnung_equivalence -- --nocapture
 # einvoice-validate --rules NAME on every fetched corpus: Saxon-HE results and verdicts
 scripts/check.sh rules</code></pre>
-<p>The equivalence tests print one line per stylesheet, for instance <code>xrechnung-ubl-3.0.2 XRechnung-UBL: 1704 cases (508 mutation cases): 1704 equal, 0 not</code>. On the corpora as built for 0.3.0, every stylesheet gives the Saxon-HE result on every case: 4250 runs for Factur-X, 6396 for XRechnung, 8499 for the French rules.</p>
+<p>The equivalence tests print one line per stylesheet, for instance <code>xrechnung-ubl-3.0.2 XRechnung-UBL: 1704 cases (508 mutation cases): 1704 equal, 0 not</code>. On the corpora as built for 0.4.0, every stylesheet gives the Saxon-HE result on every case: 4250 runs for Factur-X, 6396 for XRechnung, 8499 for the French rules.</p>
 
 <h2 id="performance">Performance</h2>
 <p><code>cargo xtask bench</code> measures the wall time, CPU time and peak memory of <code>einvoice-validate</code> and of Saxon-HE 12.10 on the whole corpus of each rule set (every document, mutation cases included), at the given thread counts: 23 jobs, one per rule set as <code>einvoice-validate --rules NAME</code> runs it, from the cache <code>rules fetch</code> fills, with its XML schema step, scenarios and verdicts, which must be the reference verdicts on every document and every run (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/41">#41</a>); a run of <code>einvoice-validate</code> doing exactly Saxon-HE's work (each stylesheet alone, on every document, no schema), Saxon-HE's time without the JVM start, and the latency of one document in a new process. Each command runs once to warm up, then the given number of times, the tools taking turns; each run is measured by a helper process (<code>getrusage</code> of its only child). The results, the method and the machine are in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/docs/benchmarks.md"><code>docs/benchmarks.md</code></a>, every run in <code>docs/benchmarks.json</code>; a summary is on the <a href="./#performance">home page</a>.</p>
@@ -183,10 +183,10 @@ cargo test -p einvoice-validator --release --locked --test footprint
 # the heap of the UBL 2.1 and CII D16B schemas and of validating the CEN corpora
 cargo run --release --locked -p einvoice-xsd --example heap</code></pre>
 <ul>
-<li><strong>Whole jobs</strong> (commit <code>f07b7a8</code>, on <code>main</code> after 0.3.0, median of 5 runs). One thread, the 23 jobs (19682 documents): 43.2 s against 109 s for Saxon-HE (2.5 times faster; 2.3 times against Saxon-HE without its JVM start), from 1.7 times (CEN UBL) to 17 times (French CDAR) per rule set, XRechnung UBL and CII 2.1 times (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/40">#40</a>). Eight threads: 6.74 s against 47.4 s (7.0 times), 5.0 to 46 times per rule set. Peak memory 23 to 93 times lower.</li>
+<li><strong>Whole jobs</strong> (commit <code>f07b7a8</code>, in 0.4.0, median of 5 runs). One thread, the 23 jobs (19682 documents): 43.2 s against 109 s for Saxon-HE (2.5 times faster; 2.3 times against Saxon-HE without its JVM start), from 1.7 times (CEN UBL) to 17 times (French CDAR) per rule set, XRechnung UBL and CII 2.1 times (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/40">#40</a>). Eight threads: 6.74 s against 47.4 s (7.0 times), 5.0 to 46 times per rule set. Peak memory 23 to 93 times lower.</li>
 <li><strong>One invoice in a new process</strong>: 45 ms with the UBL 2.1 schema, 32 ms without; Saxon-HE 599 ms, 450 ms without its JVM start.</li>
 <li><strong>Heap of one validation</strong> (0.3.0). On a synthetic invoice of 5000 lines (4.1 MB), a validation peaks at 2.1 times the document, the stylesheet's input tree alone being 1.9 times; on the largest CEN UBL corpus document, 51 KiB above it.</li>
-<li><strong>WebAssembly</strong> (0.3.0). The npm package's module is 6.2 MB (0.67 MB with brotli), built with <code>opt-level</code> 3.</li>
+<li><strong>WebAssembly</strong> (0.4.0). The npm package's module is 6.95 MB (0.80 MB with brotli), built with <code>opt-level</code> 3.</li>
 </ul>
 
 <h2 id="layout">Repository layout</h2>
