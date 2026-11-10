@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Build and test · einvoice-validator</title>
-<meta name="description" content="Building and installing einvoice-validator from source, running its checks and tests, its Saxon-HE and xmllint reference oracles, the CEN UBL and CII corpora, the Peppol BIS Billing 3.0 corpus and bundle, and its performance measurements.">
+<meta name="description" content="Building and installing einvoice-validator from source, running its checks and tests, its Saxon-HE and xmllint reference oracles, the CEN UBL and CII corpora, the corpora of Peppol BIS Billing 3.0, Factur-X, XRechnung and the French rules, and its benchmarks against Saxon-HE.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=1">
@@ -13,22 +13,23 @@
 <a class="skip" href="#content">Skip to content</a>
 <main id="content">
 <header class="top"><a href="./" class="brand"><img src="favicon.svg" alt="" width="28" height="28">einvoice-validator</a><span><a href="docs.html" aria-current="page">Docs</a> <a href="https://github.com/einvoice-validator" class="gh" aria-label="einvoice-validator on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a></span></header>
-<nav class="toc" aria-label="On this page"><a href="./">← Home</a> <a href="#requirements">Requirements</a> <a href="#build">Build and install</a> <a href="#checks">Checks</a> <a href="#tests">Tests</a> <a href="#oracle">Corpus and oracle</a> <a href="#peppol">Peppol</a> <a href="#performance">Performance</a> <a href="#layout">Layout</a></nav>
+<nav class="toc" aria-label="On this page"><a href="./">← Home</a> <a href="#requirements">Requirements</a> <a href="#build">Build and install</a> <a href="#checks">Checks</a> <a href="#tests">Tests</a> <a href="#oracle">Corpus and oracle</a> <a href="#peppol">Peppol</a> <a href="#fetched">Factur-X, XRechnung, French rules</a> <a href="#performance">Performance</a> <a href="#layout">Layout</a></nav>
 <h1>Build and test</h1>
-<p class="lead">For contributors, and for anyone who wants to check the claims: everything on this page runs in a clone of the repository. To validate invoices with the released version, 0.2.0 on crates.io, see <a href="./#use">Use it</a>; the commands below build the workspace and check the engine, the library and the command-line tool against Saxon-HE on the CEN UBL, CEN CII and Peppol corpora.</p>
+<p class="lead">For contributors, and for anyone who wants to check the claims: everything on this page runs in a clone of the repository. To validate invoices with the released version, 0.3.0 on crates.io, see <a href="./#use">Use it</a>; the commands below build the workspace and check the engine, the library and the command-line tool against Saxon-HE on the corpus of every rule set.</p>
 
 <h2 id="requirements">Requirements</h2>
 <ul>
 <li><a href="https://rustup.rs/">rustup</a>, Git and Bash. The toolchain is pinned in <code>rust-toolchain.toml</code> (Rust 1.99.1 with rustfmt and clippy); <code>scripts/check.sh</code> installs it when it is missing.</li>
 <li>Optional: <a href="https://github.com/EmbarkStudios/cargo-deny">cargo-deny</a>, <a href="https://github.com/rhysd/actionlint">actionlint</a>, <a href="https://github.com/zizmorcore/zizmor">zizmor</a>, <a href="https://github.com/koalaman/shellcheck">ShellCheck</a>, <a href="https://jqlang.org/">jq</a>, <a href="https://wasmtime.dev/">wasmtime</a> and the <code>wasm32-unknown-unknown</code> target (<code>rustup target add wasm32-unknown-unknown</code>). Without one of them, the check that needs it prints <code>SKIPPED</code>; in CI they are all installed, at pinned versions, and a missing one is a failure.</li>
-<li>For the reference oracle and the Peppol corpus only: Java (CI uses Temurin 21) and network access the first time, to download Saxon-HE 12.10 and the XML Resolver 5.3.3 it needs, and for Peppol the pinned release, Apache Maven and the Schematron compiler.</li>
-<li>For the xmllint oracle of the schema validation only: <code>xmllint</code> (libxml2). The tests do not need it.</li>
+<li>For the reference oracle and the corpora of the fetched rule sets only: Java (CI uses Java 21) and network access the first time, to download Saxon-HE 12.10 and the XML Resolver 5.3.3 it needs, the pinned rule-set releases and, for the reference compilation of the Peppol Schematron the tests compare with, Apache Maven and ph-schematron. Validating with a fetched rule set needs none of them: <code>einvoice-validate rules fetch</code> does it in Rust.</li>
+<li>For the xmllint oracle of the schema validation and the XRechnung corpora: <code>xmllint</code> (libxml2). The tests of the CEN corpora do not need it.</li>
+<li>For the npm package: Node.js 22 and npm, the pinned <code>wasm-bindgen-cli</code> and <code>wasm-opt</code> (<code>crates/einvoice-wasm/npm.sh tools</code> installs them outside the repository), and Chrome or Firefox for its browser test.</li>
 </ul>
 
 <h2 id="build">Build and install from source</h2>
 <p>The released command-line tool installs from crates.io without a clone, with Rust 1.99 or later; the library is the crate <a href="https://crates.io/crates/einvoice-validator"><code>einvoice-validator</code></a>, documented on <a href="https://docs.rs/einvoice-validator">docs.rs</a>:</p>
 <pre><code>cargo install --locked einvoice-cli
-# in Cargo.toml: einvoice-validator = "0.2"</code></pre>
+# in Cargo.toml: einvoice-validator = "0.3"</code></pre>
 <p>From a clone, for the current <code>main</code>:</p>
 <pre><code>git clone https://github.com/einvoice-validator/einvoice-validator.git
 cd einvoice-validator
@@ -56,7 +57,8 @@ scripts/check.sh toolchain</code></pre>
 <tr><td><code>doc</code></td><td><code>cargo doc --workspace --no-deps --all-features --locked</code></td></tr>
 <tr><td><code>test</code></td><td>Unit and integration tests, then the doctests</td></tr>
 <tr><td><code>features</code></td><td>Clippy and the tests of <code>einvoice-validator</code> with <code>--no-default-features</code> (no built-in rule set)</td></tr>
-<tr><td><code>wasm</code></td><td><code>einvoice-validator</code> built for <code>wasm32-unknown-unknown</code>, then the examples <code>wasm-smoke</code> (the evaluator) and <code>wasm-validate</code> (the built-in rule set on two corpus documents) built for that target: each must import nothing and return 0 under wasmtime</td></tr>
+<tr><td><code>wasm</code></td><td><code>einvoice-validator</code>, <code>einvoice-pdf</code> and <code>einvoice-xml</code> built for <code>wasm32-unknown-unknown</code>, then their examples built for that target (the evaluator, the built-in rule set on two corpus documents, two PDF files built in memory, the XML reader): each must import nothing and return 0 under wasmtime</td></tr>
+<tr><td><code>npm</code></td><td>The npm package built (<code>wasm-bindgen</code>, <code>wasm-opt</code>), its Node.js tests (the API, the CEN UBL and CII corpora against the Saxon-HE results), a strict TypeScript check of its declarations, the browser test in headless Chrome and Firefox, then <code>npm pack --dry-run</code></td></tr>
 <tr><td><code>package</code></td><td>The publishable crates packaged as crates.io would receive them and built from their packages; each term of a crate's licence expression must have its text in the package</td></tr>
 <tr><td><code>deny</code></td><td><code>cargo deny --all-features check</code>: licences, advisories, bans, sources</td></tr>
 <tr><td><code>actionlint</code></td><td>Lints the GitHub Actions workflows</td></tr>
@@ -64,7 +66,9 @@ scripts/check.sh toolchain</code></pre>
 <tr><td><code>pins</code></td><td>Every pin of <code>upstream.toml</code> matches the files that record it (offline), and the tests of the freshness script</td></tr>
 <tr><td><code>guards</code></td><td>ShellCheck on the scripts and git hooks, then the tests of the privacy guard and of the release scripts</td></tr>
 <tr><td><code>oracle</code></td><td>The CEN corpus, the xmllint oracle and the Saxon-HE reference oracle (<a href="#oracle">below</a>)</td></tr>
-<tr><td><code>peppol</code></td><td>The Peppol corpus built in <code>target/peppol/</code>, its Saxon-HE results, then the engine and <code>einvoice-validate</code> with the Peppol bundle against them (<a href="#peppol">below</a>)</td></tr>
+<tr><td><code>peppol</code></td><td>The Peppol corpus built in <code>target/peppol/</code>, its Saxon-HE results, then the engine and <code>einvoice-validate</code> with the Peppol bundle against them, and the Schematron compiled in Rust against ph-schematron (<a href="#peppol">below</a>)</td></tr>
+<tr><td><code>facturx</code>, <code>xrechnung</code>, <code>fr-ctc</code></td><td>The corpus of each family of fetched rule sets built in <code>target/</code>, its Saxon-HE results and cross-checks, then the engine against them, and xmllint and <code>einvoice-xsd</code> on its CII documents (<a href="#fetched">below</a>)</td></tr>
+<tr><td><code>rules</code></td><td>The rule sets fetched on demand: the pins embedded in the crate are the fetch scripts' pins, <code>rules fetch</code> assembles from the scripts' downloads, byte for byte, the bundles the scripts wrote, and <code>einvoice-validate --rules NAME</code> gives the Saxon-HE results and the reference validators' verdicts on every corpus of the four jobs above</td></tr>
 <tr><td><code>privacy</code></td><td>The repository's content guard on staged changes; does nothing when nothing is staged</td></tr>
 </tbody>
 </table>
@@ -103,10 +107,10 @@ cargo test -p einvoice-xpath-eval --locked --test oracle
 cargo test -p einvoice-xdm --locked --test oracle
 # schema validation against the xmllint results
 cargo test -p einvoice-xsd --locked --test oracle</code></pre>
-<p>The equivalence test prints <code>1179 cases: 1179 equal, 0 different, 0 failed</code>, and the mutation test <code>CEN: 504 mutation cases: 504 equal, 0 different</code>; for CII, <code>24 CII cases: 24 equal, 0 not</code> and <code>CII: 808 mutation cases: 808 equal, 0 different</code>; any difference is shown with the first line where the two reports diverge. A mutation case on which Saxon-HE stops with a dynamic error must stop the engine with the same error code; the cases where the message differs are listed, not failed.</p>
+<p>The equivalence test prints <code>1179 cases: 1179 equal, 0 different, 0 failed</code>, and the mutation test <code>CEN: 508 mutation cases: 508 equal, 0 different</code>; for CII, <code>24 CII cases: 24 equal, 0 not</code> and <code>CII: 808 mutation cases: 808 equal, 0 different</code>; any difference is shown with the first line where the two reports diverge. A mutation case on which Saxon-HE stops with a dynamic error must stop the engine with the same error code; the cases where the message differs are listed, not failed.</p>
 
 <h2 id="oracle">Test corpus and reference oracle</h2>
-<p><code>artefacts/</code> holds unmodified copies of the official validation artefacts, <code>corpus/</code> the test cases derived from them and, for each case, the SVRL report Saxon-HE 12.10 produces (or the error that stops it), in the canonical form of <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/SVRL-CANONICAL.md">corpus/SVRL-CANONICAL.md</a>. Besides the official examples, test files and unit tests, the corpus has mutation cases: the edits of <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/mutations.toml">corpus/mutations.toml</a> (UBL) and <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/mutations-cii.toml">corpus/mutations-cii.toml</a> (CII) applied to official examples. The CEN UBL corpus has 1179 cases and 504 mutation cases, the CEN CII corpus 24 cases (the 15 examples and the 9 VEFA tests of the release) and 808 mutation cases. The format is described in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/README.md">corpus/README.md</a>.</p>
+<p><code>artefacts/</code> holds unmodified copies of the official validation artefacts, <code>corpus/</code> the test cases derived from them and, for each case, the SVRL report Saxon-HE 12.10 produces (or the error that stops it), in the canonical form of <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/SVRL-CANONICAL.md">corpus/SVRL-CANONICAL.md</a>. Besides the official examples, test files and unit tests, the corpus has mutation cases: the edits of <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/mutations.toml">corpus/mutations.toml</a> (UBL) and <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/mutations-cii.toml">corpus/mutations-cii.toml</a> (CII) applied to official examples. The CEN UBL corpus has 1179 cases and 508 mutation cases, the CEN CII corpus 24 cases (the 15 examples and the 9 VEFA tests of the release) and 808 mutation cases. The format is described in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/corpus/README.md">corpus/README.md</a>.</p>
 <pre><code># vendored files match artefacts/*/SHA256SUMS
 cargo xtask manifest
 # the corpus re-derived from artefacts/, mutation cases included, matches the committed one
@@ -122,69 +126,90 @@ cargo xtask oracle
 # einvoice-xdm, einvoice-xpath-eval and einvoice-xslt-exec
 scripts/check.sh oracle</code></pre>
 <p><code>--write</code> regenerates instead of checking (<code>manifest</code>, <code>corpus</code>, <code>oracle</code>). <code>cargo xtask oracle</code> also takes <code>--java JAVA</code> and <code>--saxon JAR</code>; <code>scripts/check.sh oracle</code> reads them from the <code>JAVA</code> and <code>SAXON_JAR</code> environment variables. Without Java, <code>scripts/check.sh oracle</code> runs the manifest, corpus and cross-check and skips the Saxon runs (in CI it fails instead). <code>cargo test</code> covers the manifest, extraction and cross-check without Java.</p>
-<p>Schema validation has its own oracle, xmllint (libxml2), on 1555 cases: the corpus documents, synthetic documents and mutations of them. A second, synthetic suite (180 document cases and 69 schema mutations) covers the XML Schema constructs the CII-family schemas add: <code>fixed</code> and <code>default</code> values, anonymous complex types in local element declarations, length facets on the string types. Every difference from xmllint is listed with its cause in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-xsd/tests/oracle/README.md">crates/einvoice-xsd/tests/oracle/</a>.</p>
+<p>Schema validation has its own oracle, xmllint (libxml2): for UBL 2.1, the corpus documents, synthetic documents and mutations of them; for CII D16B, the 24 cases and 808 mutation cases of the CEN CII corpus, and in the <code>facturx</code>, <code>xrechnung</code> and <code>fr-ctc</code> jobs the CII corpora of those rule sets. A second, synthetic suite (180 document cases and 69 schema mutations) covers the XML Schema constructs the CII-family schemas add: <code>fixed</code> and <code>default</code> values, anonymous complex types in local element declarations, length facets on the string types. Every difference from xmllint is listed with its cause in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/crates/einvoice-xsd/tests/oracle/README.md">crates/einvoice-xsd/tests/oracle/</a>.</p>
 <pre><code># run xmllint on every case of both suites, check the committed results, compare
 cargo run --release --locked -p einvoice-xsd --example xmllint-oracle</code></pre>
 
 <h2 id="peppol">Peppol corpus and bundle</h2>
-<p>The Peppol BIS Billing 3.0 files carry no licence, so neither they nor anything derived from them is committed: the corpus is built locally in <code>target/peppol/</code>. <code>scripts/fetch-peppol.sh</code> downloads the pinned 3.0.22 release and compiles its Peppol and CEN Schematron to XSLT with the ISO skeleton of ph-schematron, every input and output checked against a pinned checksum, and writes the <code>bundle.toml</code> that makes the directory a rule-set bundle. CI builds the corpus and runs these checks whenever the engine or the tooling changes.</p>
+<p>The Peppol BIS Billing 3.0 files carry no licence, so neither they nor anything derived from them is committed: the corpus is built locally in <code>target/peppol/</code>. <code>scripts/fetch-peppol.sh</code> downloads the pinned 3.0.22 release and compiles its Peppol and CEN Schematron to XSLT with ph-schematron 10.3.1 itself (the reference), every input and output checked against a pinned checksum, and writes the <code>bundle.toml</code> that makes the directory a rule-set bundle. <code>einvoice-validate rules fetch peppol</code> builds the same bundle, byte for byte, with the Schematron compiled in Rust (<code>einvoice-schematron</code>), and a test checks each step of that compilation against ph-schematron. CI builds the corpus and runs these checks whenever the engine or the tooling changes.</p>
 <pre><code># the release and its two compiled stylesheets, checksums verified,
 # into target/peppol/peppol-bis-billing-ubl-3.0.22/, with its bundle.toml
 scripts/fetch-peppol.sh
-# 707 cases and 505 mutation cases, the Saxon-HE results of both
+# 707 cases and 509 mutation cases, the Saxon-HE results of both
 # stylesheets, and the cross-check with the official unit tests
 cargo xtask peppol
 # the engine on all 707 cases, with each stylesheet
 cargo test -p einvoice-xslt-exec --release --locked --test peppol_equivalence -- --nocapture
 # einvoice-validate with the Peppol bundle, against the same results
 cargo test -p einvoice-cli --release --locked --test peppol_bundle -- --nocapture
+# the Schematron compiled in Rust, byte for byte the stylesheets of ph-schematron
+cargo test -p einvoice-schematron --locked --test peppol -- --nocapture
 # all of the above, and the Peppol mutation cases
-scripts/check.sh peppol
-# the bundle, used by the command-line tool
-einvoice-validate --bundle target/peppol/peppol-bis-billing-ubl-3.0.22 invoice.xml</code></pre>
-<p>The equivalence test prints <code>PEPPOL-EN16931-UBL: 707 cases: 707 equal, 0 different, 0 failed</code> and the same for <code>CEN-EN16931-UBL</code>, the CEN rules the Peppol release embeds (the <code>bundle.toml</code> gives them the CEN version their Schematron states, 1.3.16); the cross-check reports 678 unit-test cases out of 678 in agreement with Saxon-HE.</p>
+scripts/check.sh peppol</code></pre>
+<p>The equivalence test prints <code>PEPPOL-EN16931-UBL: 707 cases: 707 equal, 0 different, 0 failed</code> and the same for <code>CEN-EN16931-UBL</code>, the CEN rules the Peppol release embeds (the <code>bundle.toml</code> gives them the CEN version their Schematron states, 1.3.16), and the mutation test <code>PEPPOL-EN16931-UBL: 509 mutation cases: 509 equal, 0 different</code>; the cross-check reports 678 unit-test cases out of 678 in agreement with Saxon-HE.</p>
+
+<h2 id="fetched">Factur-X, XRechnung and the French rules</h2>
+<p>Their files may not be redistributed either, and their corpora are built locally the same way, each by a fetch script (every input checked against a pinned digest) and a <code>cargo xtask</code> command that extracts the cases, runs Saxon-HE with every stylesheet, writes the acceptance table (each document as the reference validator reads its findings) and cross-checks the results with the expectations: the XML Mutate expectations of the XRechnung unit tests, and the published examples, which must be accepted. The corpora: Factur-X 1.09.2, 42 cases and 808 mutation cases, five stylesheets; XRechnung 3.0.2, 1196 UBL and 686 CII cases and 508 + 808 mutation cases, two stylesheets per syntax, the scenarios of the KoSIT configuration and the verdict of its XML schema (xmllint); French rules 1.4.0.04, 53 CII, 75 UBL and 70 CDAR cases and 808 + 508 mutation cases, seven, four and two stylesheets.</p>
+<pre><code># one family: fetch, corpus, Saxon-HE results, cross-checks, then the engine
+scripts/check.sh facturx
+scripts/check.sh xrechnung
+scripts/check.sh fr-ctc
+# or step by step
+scripts/fetch-xrechnung.sh                # into target/xrechnung/
+cargo xtask xrechnung                     # the corpora and their Saxon-HE results
+cargo test -p einvoice-xslt-exec --release --locked --test xrechnung_equivalence -- --nocapture
+# einvoice-validate --rules NAME on every fetched corpus: Saxon-HE results and verdicts
+scripts/check.sh rules</code></pre>
+<p>The equivalence tests print one line per stylesheet, for instance <code>xrechnung-ubl-3.0.2 XRechnung-UBL: 1704 cases (508 mutation cases): 1704 equal, 0 not</code>. On the corpora as built for 0.3.0, every stylesheet gives the Saxon-HE result on every case: 4250 runs for Factur-X, 6396 for XRechnung, 8499 for the French rules.</p>
 
 <h2 id="performance">Performance</h2>
-<p>Release builds, one machine. Reading the files is not timed by the examples; it is in the command-line runs. The figures below were measured with 0.1.0, except where 0.2.0 is named; the commands are those of 0.2.0.</p>
-<pre><code># the stylesheet alone: load and prepare, then every CEN corpus document
-# parsed, transformed and written as SVRL, one after the other on one thread
-cargo run --release --locked -p einvoice-xslt-exec --example bench-cen -- --repeat 5
-# its heap: the prepared stylesheet, the peak for one document, the whole run
-cargo run --release --locked -p einvoice-xslt-exec --example heap-cen
-# the whole validation (XML, schema, stylesheet) with the built-in rule set
-cargo run --release --locked -p einvoice-validator --example bench
-cargo run --release --locked -p einvoice-validator --example heap
-# the heap of the UBL 2.1 schema and of validating the CEN corpus against it
-cargo run --release --locked -p einvoice-xsd --example heap
-# the Peppol job, both stylesheets (needs the Peppol corpus)
-cargo run --release --locked -p einvoice-xslt-exec --example bench-peppol -- --repeat 5
-cargo run --release --locked -p einvoice-xslt-exec --example heap-peppol</code></pre>
+<p><code>cargo xtask bench</code> measures the wall time, CPU time and peak memory of <code>einvoice-validate</code> and of Saxon-HE 12.10 on the whole corpus of each rule set (every document, mutation cases included, through every stylesheet), at the given thread counts, a run of <code>einvoice-validate</code> doing exactly Saxon-HE's work (each stylesheet alone, no schema), Saxon-HE's time without the JVM start, and the latency of one document in a new process. Each command runs once to warm up, then the given number of times, the tools taking turns; each run is measured by a helper process (<code>getrusage</code> of its only child). The results, the method and the machine are in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/docs/benchmarks.md"><code>docs/benchmarks.md</code></a>, every run in <code>docs/benchmarks.json</code>; a summary is on the <a href="./#performance">home page</a>.</p>
+<pre><code>cargo build --release --locked -p einvoice-cli
+scripts/fetch-saxon.sh
+# the fetched corpora (Java, xmllint, network the first time)
+scripts/check.sh peppol facturx xrechnung fr-ctc
+# every rule set, 1 and 8 threads; --write updates docs/benchmarks.md and .json
+cargo xtask bench --runs 5 --threads 1,8
+# some rule sets only: all, cen, cen-ubl, cen-cii, peppol, facturx,
+# xrechnung(-ubl|-cii), fr-ctc(-cii|-ubl|-cdar)
+cargo xtask bench --families cen --runs 3</code></pre>
+<p>Memory of one validation, measured by a counting allocator, and its budget:</p>
+<pre><code># peak heap and time of a validation and of its stages, on the largest CEN corpus
+# document and on a synthetic invoice of 5000 lines
+cargo run --release --locked -p einvoice-validator --example footprint
+# the budget: fails when a validation peaks above it
+cargo test -p einvoice-validator --release --locked --test footprint
+# the heap of the UBL 2.1 and CII D16B schemas and of validating the CEN corpora
+cargo run --release --locked -p einvoice-xsd --example heap</code></pre>
 <ul>
-<li><strong>Stylesheet.</strong> Load about 17 ms and prepare about 5 ms, then 1179 documents (4.6 MB) in about 0.48 s: 0.4 ms per document on average, a median of 0.3 ms, about 4 ms for the slowest. The prepared stylesheet keeps about 3.7 MiB of heap. On the largest corpus document (3.3 MB), the transformation peaks at about 3.2 MiB above it when given the text as a <code>String</code>, which the tree keeps, and at about 6.3 MiB when the tree copies the text.</li>
-<li><strong>Whole validation.</strong> Loading the built-in rule set takes about 39 ms (the UBL 2.1 schemas 14 ms, the stylesheet 17 ms); the 1179 documents then take about 0.56 s, 0.47 ms each on average, 90 % of it in the stylesheet, 2.4 % in the schema check. The loaded rule set keeps about 5.4 MiB; the largest document peaks at about 12.3 MiB above it.</li>
-<li><strong>Schema stage in 0.2.0.</strong> The schema validation copies no values out of the document: on the largest CEN document (3.3 MB), its peak above the input drops from 9.4 MiB to 53 KiB and the whole job's peak from 12.6 MiB to 3.3 MiB (document given as a buffer); the compiled UBL 2.1 schema keeps 0.9 MiB instead of 1.7 MiB; validating the corpus takes 23 % less time in this stage.</li>
-<li><strong>Stack in 0.2.0.</strong> Each level of stylesheet recursion needs 1.3 KiB of stack in a release build (2.9 KiB in 0.1.0) and 2.8 KiB in a debug build (13.7 KiB): at the default maximum depth of 256, the CEN rule sets and both Peppol stylesheets run on a thread with the default 2 MiB stack, debug builds included.</li>
-<li><strong>Peppol.</strong> Both stylesheets prepared in about 29 ms, keeping about 5.2 MiB; 707 documents (2.0 MB), each through both, in about 0.72 s, 1.0 ms per document on average.</li>
-<li><strong>Command line.</strong> <code>einvoice-validate --format json</code> on the 1179 CEN corpus documents, process start, rule-set load and file reading included: about 0.62 s with one thread, 0.13 s with <code>--jobs 8</code>; with the Peppol bundle on the 707 Peppol documents, 0.86 s and 0.16 s; on one invoice, about 50 ms.</li>
-<li><strong>Saxon-HE 12.10, for comparison.</strong> One <code>net.sf.saxon.Transform</code> of the CEN stylesheet alone, no schema validation, over a directory of the 1179 documents: about 1.4 s with <code>-threads:1</code> and 1.0 s with <code>-threads:8</code>, JVM start and stylesheet compilation included.</li>
-<li><strong>WebAssembly.</strong> <code>wasm-validate</code>, which embeds the UBL 2.1 schemas and the CEN stylesheet, is 6.5 MB as built by the <code>wasm</code> job and 5.4 MB with <code>opt-level = "z"</code>, LTO, one codegen unit and stripping (for example through the <code>CARGO_PROFILE_RELEASE_*</code> variables); both import nothing and return 0 under wasmtime.</li>
+<li><strong>Whole jobs</strong> (commit <code>61df544</code>, on <code>main</code> after 0.3.0, median of 5 runs). One thread, the nine jobs: 37.2 s against 80.6 s for Saxon-HE (2.2 times faster; 2.0 times against Saxon-HE without its JVM start), from 1.0 times (XRechnung UBL) to 16 times (French CDAR) per rule set. Eight threads: 5.4 s against 33.9 s (6.2 times), 2.9 to 53 times per rule set. Peak memory 19 to 46 times lower.</li>
+<li><strong>One invoice in a new process</strong>: 46 ms with the UBL 2.1 schema, 33 ms without; Saxon-HE 614 ms, 455 ms without its JVM start.</li>
+<li><strong>Heap of one validation</strong> (0.3.0). On a synthetic invoice of 5000 lines (4.1 MB), a validation peaks at 2.1 times the document, the stylesheet's input tree alone being 1.9 times; on the largest CEN UBL corpus document, 51 KiB above it.</li>
+<li><strong>WebAssembly</strong> (0.3.0). The npm package's module is 6.2 MB (0.67 MB with brotli), built with <code>opt-level</code> 3.</li>
 </ul>
 
 <h2 id="layout">Repository layout</h2>
 <dl>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-bigint">crates/einvoice-bigint</a></dt><dd>Arbitrary-precision signed integers in safe Rust, without dependencies and without assembly, behind <code>xs:integer</code> and <code>xs:decimal</code>; no division panics.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xml">crates/einvoice-xml</a></dt><dd>A streaming (pull) XML 1.0 parser with namespaces that builds no tree; every document the validator checks, validates against a schema or gives the stylesheets is read with it.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xpath">crates/einvoice-xpath</a></dt><dd>Parser and syntax tree for the XPath 2.0 subset of the official stylesheets, XSLT match patterns, sequence types and attribute value templates.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xdm">crates/einvoice-xdm</a></dt><dd>Atomic values of the XPath 2.0 data model: exact <code>xs:decimal</code>, <code>xs:integer</code>, <code>xs:double</code>, dates, casts, comparisons, regular expressions, with the behaviour of Saxon-HE 12.10.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xpath-eval">crates/einvoice-xpath-eval</a></dt><dd>Node model and evaluator of the XPath 2.0 subset, with the behaviour of Saxon-HE 12.10; unknown functions and variables are refused when an expression is compiled. The clock is an input, so it runs on <code>wasm32-unknown-unknown</code>.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xslt">crates/einvoice-xslt</a></dt><dd>Loader for the XSLT 2.0 subset: templates, modes, priorities, functions, variables and instructions; anything outside the subset is a load error.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xslt-exec">crates/einvoice-xslt-exec</a></dt><dd>Executor of that subset: a stylesheet is prepared once and run on any number of documents, writing the result (SVRL for the rule sets) straight to XML. Constructs whose result would differ from Saxon's are refused when the stylesheet is prepared.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xslt">crates/einvoice-xslt</a></dt><dd>Loader for the XSLT 2.0 subset emitted by the Schematron compilers: templates, modes, priorities, imports, functions, variables and instructions; anything outside the subset is a load error.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xslt-exec">crates/einvoice-xslt-exec</a></dt><dd>Executor of that subset: a stylesheet is prepared once and run on any number of documents, writing the result (SVRL for the rule sets) compactly, read as it is written. Constructs whose result would differ from Saxon's are refused when the stylesheet is prepared.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-schematron">crates/einvoice-schematron</a></dt><dd>Schematron compiled to XSLT as ph-schematron 10.3.1 compiles it, byte for byte: the ISO Schematron skeleton run by the engine.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-svrl">crates/einvoice-svrl</a></dt><dd>The canonical, line-oriented form of SVRL reports, shared by the oracle and the equivalence tests.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xsd">crates/einvoice-xsd</a></dt><dd>XML Schema validation of UBL 2.1 Invoice and CreditNote documents against the official OASIS schemas, which it embeds; exactly the XML Schema 1.0 constructs those schemas and the CII-family schemas use, any other refused at load.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-validator">crates/einvoice-validator</a></dt><dd>The public crate: rule-set bundles (a <code>bundle.toml</code> manifest with the SHA-256 of each stylesheet, from memory or a directory; CEN EN 16931 UBL and CII 1.3.17 built in, vendored in <code>bundles/cen-ubl/</code> and <code>bundles/cen-cii/</code>), the <code>Validator</code>, the <code>Report</code> and <code>Syntax</code> (UBL or CII, from the root element).</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-cli">crates/einvoice-cli</a></dt><dd>The <code>einvoice-validate</code> command-line tool: files and standard input, built-in rule sets (chosen from each document's root element by default) or bundle directories, several threads, text, JSON or SVRL output, documented exit codes.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/xtask">xtask</a></dt><dd>Repository tooling behind <code>cargo xtask</code>: manifest, corpus and mutation cases, oracle, cross-check, the Peppol corpus.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-xsd">crates/einvoice-xsd</a></dt><dd>XML Schema validation against the official OASIS UBL 2.1 and UN/CEFACT CII D16B schemas, which it embeds; exactly the XML Schema 1.0 constructs those schemas and the CII-family schemas use, any other refused at load.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-pdf">crates/einvoice-pdf</a></dt><dd>Extracts the embedded invoice XML and the XMP metadata of a Factur-X, ZUGFeRD or Order-X PDF/A-3 file, reading only the part of PDF on the path to embedded files; bounded against hostile input.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-validator">crates/einvoice-validator</a></dt><dd>The public crate: rule-set bundles (a <code>bundle.toml</code> manifest with the SHA-256 of each stylesheet and of each file it reads, severities and scenarios; CEN EN 16931 UBL and CII 1.3.17 built in), the rule sets fetched on demand (feature <code>fetch</code>), the <code>Validator</code>, the <code>Report</code> and <code>Syntax</code> (UBL or CII, from the root element).</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-cli">crates/einvoice-cli</a></dt><dd>The <code>einvoice-validate</code> command-line tool: XML and PDF files and standard input, built-in rule sets (chosen from each document's root element by default), fetched rule sets or bundle directories, several threads, text, JSON or SVRL output, documented exit codes.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-wasm">crates/einvoice-wasm</a></dt><dd>The JavaScript and TypeScript bindings and the build of the npm package <code>einvoice-validator</code>; not published on crates.io.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/crates/einvoice-testkit">crates/einvoice-testkit</a></dt><dd>Helpers of the tests, not published: synthetic PDF files and invoices, the supply-chain audit, the third-party notices.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/xtask">xtask</a></dt><dd>Repository tooling behind <code>cargo xtask</code>: manifest, corpora and mutation cases, oracle, cross-checks, the corpora of the fetched rule sets, the benchmark.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/artefacts">artefacts</a></dt><dd>Official validation artefacts, unmodified, with their licence and <code>SHA256SUMS</code>.</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/corpus">corpus</a></dt><dd>Test cases and their Saxon-HE results, one directory per rule set, and the mutation catalogues (UBL and CII).</dd>
-<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/scripts">scripts</a></dt><dd><code>check.sh</code>, <code>fetch-saxon.sh</code>, <code>fetch-peppol.sh</code>, <code>freshness.sh</code>, the release scripts and the other repository scripts.</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/corpus">corpus</a></dt><dd>Test cases and their Saxon-HE results, one directory per rule set (only the README and the records of comparisons for the fetched ones), and the mutation catalogues (UBL and CII).</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/docs">docs</a></dt><dd>The benchmarks (<code>benchmarks.md</code>, <code>benchmarks.json</code>) and the dependency audit (<code>dependencies.md</code>).</dd>
+<dt><a href="https://github.com/einvoice-validator/einvoice-validator/tree/main/scripts">scripts</a></dt><dd><code>check.sh</code>, <code>fetch-saxon.sh</code>, the fetch scripts of the rule sets, <code>freshness.sh</code>, the release scripts and the other repository scripts.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/upstream.toml">upstream.toml</a></dt><dd>Every pinned upstream version (rule sets, Saxon-HE, toolchain, CI tools) and the files that record it; a weekly workflow reports newer releases.</dd>
 <dt><a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/RELEASING.md">RELEASING.md</a></dt><dd>The release process and the versioning policy.</dd>
 </dl>
