@@ -163,15 +163,16 @@ scripts/check.sh rules</code></pre>
 <p>The equivalence tests print one line per stylesheet, for instance <code>xrechnung-ubl-3.0.2 XRechnung-UBL: 1704 cases (508 mutation cases): 1704 equal, 0 not</code>. On the corpora as built for 0.3.0, every stylesheet gives the Saxon-HE result on every case: 4250 runs for Factur-X, 6396 for XRechnung, 8499 for the French rules.</p>
 
 <h2 id="performance">Performance</h2>
-<p><code>cargo xtask bench</code> measures the wall time, CPU time and peak memory of <code>einvoice-validate</code> and of Saxon-HE 12.10 on the whole corpus of each rule set (every document, mutation cases included, through every stylesheet), at the given thread counts, a run of <code>einvoice-validate</code> doing exactly Saxon-HE's work (each stylesheet alone, no schema), Saxon-HE's time without the JVM start, and the latency of one document in a new process. Each command runs once to warm up, then the given number of times, the tools taking turns; each run is measured by a helper process (<code>getrusage</code> of its only child). The results, the method and the machine are in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/docs/benchmarks.md"><code>docs/benchmarks.md</code></a>, every run in <code>docs/benchmarks.json</code>; a summary is on the <a href="./#performance">home page</a>.</p>
+<p><code>cargo xtask bench</code> measures the wall time, CPU time and peak memory of <code>einvoice-validate</code> and of Saxon-HE 12.10 on the whole corpus of each rule set (every document, mutation cases included), at the given thread counts: 23 jobs, one per rule set as <code>einvoice-validate --rules NAME</code> runs it, from the cache <code>rules fetch</code> fills, with its XML schema step, scenarios and verdicts, which must be the reference verdicts on every document and every run (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/41">#41</a>); a run of <code>einvoice-validate</code> doing exactly Saxon-HE's work (each stylesheet alone, on every document, no schema), Saxon-HE's time without the JVM start, and the latency of one document in a new process. Each command runs once to warm up, then the given number of times, the tools taking turns; each run is measured by a helper process (<code>getrusage</code> of its only child). The results, the method and the machine are in <a href="https://github.com/einvoice-validator/einvoice-validator/blob/main/docs/benchmarks.md"><code>docs/benchmarks.md</code></a>, every run in <code>docs/benchmarks.json</code>; a summary is on the <a href="./#performance">home page</a>.</p>
 <pre><code>cargo build --release --locked -p einvoice-cli
 scripts/fetch-saxon.sh
 # the fetched corpora (Java, xmllint, network the first time)
 scripts/check.sh peppol facturx xrechnung fr-ctc
 # every rule set, 1 and 8 threads; --write updates docs/benchmarks.md and .json
 cargo xtask bench --runs 5 --threads 1,8
-# some rule sets only: all, cen, cen-ubl, cen-cii, peppol, facturx,
-# xrechnung(-ubl|-cii), fr-ctc(-cii|-ubl|-cdar)
+# some rule sets only: all, the groups cen, peppol, facturx, xrechnung,
+# fr-ctc, fr-ctc-cii, fr-ctc-ubl, or rule sets by their --rules names
+# (cen-ubl, factur-x-en16931, fr-ctc-cdar, ...)
 cargo xtask bench --families cen --runs 3</code></pre>
 <p>Memory of one validation, measured by a counting allocator, and its budget:</p>
 <pre><code># peak heap and time of a validation and of its stages, on the largest CEN corpus
@@ -182,8 +183,8 @@ cargo test -p einvoice-validator --release --locked --test footprint
 # the heap of the UBL 2.1 and CII D16B schemas and of validating the CEN corpora
 cargo run --release --locked -p einvoice-xsd --example heap</code></pre>
 <ul>
-<li><strong>Whole jobs</strong> (commit <code>61df544</code>, on <code>main</code> after 0.3.0, median of 5 runs). One thread, the nine jobs: 37.2 s against 80.6 s for Saxon-HE (2.2 times faster; 2.0 times against Saxon-HE without its JVM start), from 1.0 times (XRechnung UBL) to 16 times (French CDAR) per rule set. Eight threads: 5.4 s against 33.9 s (6.2 times), 2.9 to 53 times per rule set. Peak memory 19 to 46 times lower.</li>
-<li><strong>One invoice in a new process</strong>: 46 ms with the UBL 2.1 schema, 33 ms without; Saxon-HE 614 ms, 455 ms without its JVM start.</li>
+<li><strong>Whole jobs</strong> (commit <code>f07b7a8</code>, on <code>main</code> after 0.3.0, median of 5 runs). One thread, the 23 jobs (19682 documents): 43.2 s against 109 s for Saxon-HE (2.5 times faster; 2.3 times against Saxon-HE without its JVM start), from 1.7 times (CEN UBL) to 17 times (French CDAR) per rule set, XRechnung UBL and CII 2.1 times (<a href="https://github.com/einvoice-validator/einvoice-validator/issues/40">#40</a>). Eight threads: 6.74 s against 47.4 s (7.0 times), 5.0 to 46 times per rule set. Peak memory 23 to 93 times lower.</li>
+<li><strong>One invoice in a new process</strong>: 45 ms with the UBL 2.1 schema, 32 ms without; Saxon-HE 599 ms, 450 ms without its JVM start.</li>
 <li><strong>Heap of one validation</strong> (0.3.0). On a synthetic invoice of 5000 lines (4.1 MB), a validation peaks at 2.1 times the document, the stylesheet's input tree alone being 1.9 times; on the largest CEN UBL corpus document, 51 KiB above it.</li>
 <li><strong>WebAssembly</strong> (0.3.0). The npm package's module is 6.2 MB (0.67 MB with brotli), built with <code>opt-level</code> 3.</li>
 </ul>
